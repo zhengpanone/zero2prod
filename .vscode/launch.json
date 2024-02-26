@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "zero2prod",
+            "type": "lldb",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/target/debug/zero2prod",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=zero2prod"
+                ]
+            },
+            "args": [],
+            "preLaunchTask": "cargo build"
+        },
+        {
+            "name": "tests zero2prod",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run"
+                ]
+            }
+        }
+    ]
+}

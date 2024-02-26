@@ -1,0 +1,116 @@
+name: "CI Test"
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+# 在 workflow 级别设置（所有 job 共享）
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gmall
+  REDIS_URL: redis://localhost:6379
+  JWT_SECRET: "test-secret-key"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gmall
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Install cargo tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli, cargo-llvm-cov, cargo-nextest
+
+      - name: Verify Postgres connection
+        run: |
+          echo "Testing PostgreSQL connection..."
+          # 使用 psql 直接测试连接
+          PGPASSWORD=postgres psql -h localhost -U postgres -d gmall -c "SELECT version();" || {
+            echo "Direct connection failed, trying with explicit parameters..."
+            PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d gmall -c "SELECT version();"
+          }
+          echo "PostgreSQL is ready and accepting connections!"
+
+      # - name: Wait for Postgres
+      #   run: |
+      #     echo "Waiting for Postgres to be ready..."
+      #     for i in {1..30}; do
+      #       if pg_isready -h postgres -p 5432 -U postgres; then
+      #         echo "Postgres is ready!"
+      #         exit 0
+      #       fi
+      #       echo "Attempt $i: Postgres is not ready yet..."
+      #       sleep 2
+      #     done
+      #     echo "Postgres did not become ready in time."
+      #     exit 1
+
+      - name: Run database migrations
+        run: |
+          echo "Running migrations with DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gmall"
+          sqlx migrate run --source ./migrations
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Check the package for errors
+        run: cargo check --all
+
+      - name: Run tests with nextest
+        run: cargo nextest run --all-features --no-fail-fast
+
+      - name: Generate code coverage
+        if: github.event_name == 'pull_request'
+        run: |
+          cargo llvm-cov nextest --all-features --lcov --output-path lcov.info
+
+      - name: Upload coverage reports
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
