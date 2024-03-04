@@ -1,22 +1,15 @@
-use std::net::TcpListener;
-use sqlx::PgPool;
-use zero2prod::{configuration::get_configuration, startup::run};
-
-
+use axum::{response::Html, routing::get, Router};
 
 #[tokio::main]
-async fn main()->std::io::Result<()>{
+async fn main() {
+    let app = Router::new().route("/", get(handler));
 
+    let addr = "0.0.0.0:8090";
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    println!("listening on http://{:?}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
+}
 
-
-    let configuration = get_configuration().expect("Failed to read connection.");
-    let connectionn_pool = PgPool::connect(&configuration.database.connection_string())
-    .await.expect("Failed to connect to Postgres.");
-    
-    let address = format!("127.0.0.1:{}",configuration.application_port);
-    
-    let listener = TcpListener::bind(address)?;
-    println!("{}",listener.local_addr().unwrap());
-    run(listener,connectionn_pool)?.await?;
-    Ok(())
+async fn handler() -> Html<&'static str> {
+    Html("<h1>Hello, World!</h1>")
 }
