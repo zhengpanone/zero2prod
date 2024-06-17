@@ -7,7 +7,7 @@ cargo add serde_json
 cargo add tokio
 cargo add tracing
 cargo add tracing_subscriber -F env-filter
-cargo run -x 'run'
+cargo watch -x 'run'
 
 cargo add sqlx -F sqlite,runtime-tokio,tls-rustls,time
 
