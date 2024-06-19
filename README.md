@@ -1,3 +1,6 @@
+https://www.bilibili.com/video/BV13C4y1k7xJ/?p=2&spm_id_from=pageDriver
+https://blog.csdn.net/qq_36268452/article/details/128045377
+https://blog.csdn.net/qq_34168515/article/details/135162147
 ## 安装依赖
 
 ```shell
@@ -17,4 +20,7 @@ sqlx migrate add -r create_users
 
 sqlx migrate run
 sqlx migrate revert
+
+sqlx migrate add -r create_counters
+sqlx migrate run
 ```

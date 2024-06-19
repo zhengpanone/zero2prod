@@ -1,0 +1,35 @@
+{
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "driver": "SQLite",
+      "name": "axum-dev",
+      "database": "${workspaceFolder:zero2prod}/data.db",
+      "group": "sqlite"
+    }
+  ],
+  "sqltools.useNodeRuntime": true,
+  "rest-client.environmentVariables": {
+    "$shared": {
+      "version": "v1"
+    },
+    "local": {
+      "uacUrl": "http://axum.frp.yn.asqy.net",
+      "baseUrl": "http://127.0.0.1:8099",
+      "username": "zhangsan",
+      "password": "123456"
+    },
+    "dev": {
+      "uacUrl": "http://axum.frp.yn.asqy.net",
+      "baseUrl": "http://127.0.0.1:8099",
+      "username": "zhangsan",
+      "password": "123456"
+    },
+    "uat": {
+      "uacUrl": "http://axum.frp.yn.asqy.net",
+      "baseUrl": "http://127.0.0.1:8099",
+      "username": "zhangsan",
+      "password": "123456"
+    }
+  }
+}

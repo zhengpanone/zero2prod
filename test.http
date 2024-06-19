@@ -1,0 +1,17 @@
+@contentType = application/json
+
+### 登录
+# @name login
+POST  {{baseUrl}}/api/wx_counter/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "code": "test"
+}
+
+@AuthToken = {{login.response.body.access_token}}
+
+### 获取counter
+GET {{baseUrl}}/api/wx_counter/counters HTTP/1.1
+Content-Type: {{contentType}}
+Authorization: Bearer {{AuthToken}}

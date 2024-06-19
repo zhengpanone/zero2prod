@@ -33,10 +33,14 @@ async fn main() {
         .route("/", get(root))
         .route("/users", post(create_user))
         .route("/api/wx_counter/login", post(api::user::login))
+        .route(
+            "/api/wx_counter/counters",
+            get(api::counter::list),
+        )
         .layer(trace_layer)
         .with_state(pool);
 
-    let addr = format!("{}:{}",Ipv4Addr::UNSPECIFIED, 8099);
+    let addr = format!("{}:{}", Ipv4Addr::UNSPECIFIED, 8099);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     println!("listening on http://{:?}", listener.local_addr().unwrap());

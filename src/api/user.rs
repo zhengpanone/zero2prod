@@ -1,13 +1,14 @@
 use axum::{extract::State, Json};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 
-use crate::db::User;
+use crate::{api::jwt::Claims, db::User};
 
-use super::ApiError;
+use super::{jwt::AuthError, ApiError};
 
 #[derive(Deserialize)]
-pub struct LoginPalyload {
+pub struct LoginPayload {
     code: String,
 }
 #[derive(Serialize)]
@@ -27,9 +28,9 @@ impl AuthBody {
 
 pub async fn login(
     State(pool): State<Pool<Sqlite>>,
-    Json(palyload): Json<LoginPalyload>,
-) -> Result<Json<()>, ApiError> {
-    let wx_user = wx_login(palyload.code).await?;
+    Json(payload): Json<LoginPayload>,
+) -> Result<Json<AuthBody>, ApiError> {
+    let wx_user = wx_login(payload.code).await?;
 
     let user = sqlx::query_as::<_, User>("select * from users where openid = ?")
         .bind(&wx_user.openid)
@@ -39,7 +40,7 @@ pub async fn login(
     let user = match user {
         Ok(user) => user,
         Err(sqlx::Error::RowNotFound) => {
-            let res = sqlx::query("insert into users(openid,session_key) values(?, ?)")
+            sqlx::query("insert into users(openid,session_key) values(?, ?)")
                 .bind(&wx_user.openid)
                 .bind(&wx_user.session_key)
                 .execute(&pool)
@@ -52,9 +53,17 @@ pub async fn login(
         }
         Err(e) => return Err(ApiError::from(e)),
     };
-    
-    // Ok(Json(()))
-    todo!()
+    let claims = Claims::new(user.id.to_string());
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(b"secret"),
+    )
+    .map_err(|_| AuthError::TokenCreation)?;
+    let rsp = AuthBody::new(token);
+
+    Ok(Json(rsp))
+    // todo!()
 }
 #[derive(Deserialize, Default)]
 pub struct WxUser {
