@@ -1,13 +1,15 @@
 pub mod api;
+pub mod config;
 pub mod db;
 
 use std::net::Ipv4Addr;
 
 use axum::{
     http::StatusCode,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Json, Router,
 };
+use config::APP_CONFIG;
 use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use tower_http::trace;
@@ -16,6 +18,8 @@ use tracing::Level;
 
 #[tokio::main]
 async fn main() {
+    println!("{}", APP_CONFIG.server_port);
+    println!("{}", APP_CONFIG.test.debug);
     dotenv().ok();
     let pool = db::establish_connection().await;
     // initialize tracing
@@ -33,10 +37,14 @@ async fn main() {
         .route("/", get(root))
         .route("/users", post(create_user))
         .route("/api/wx_counter/login", post(api::user::login))
-        .route(
-            "/api/wx_counter/counters",
-            get(api::counter::list),
-        )
+        .route("/api/wx_counter/counters", get(api::counter::list))
+        .route("/api/wx_counter/counters", post(api::counter::add))
+        .route("/api/wx_counter/counters/:id", get(api::counter::show))
+        .route("/api/wx_counter/counters/:id", put(api::counter::update))
+        .route("/api/wx_counter/counters/:id", delete(api::counter::delete))
+        .route("/api/wx_counter/counters/:id/top", post(api::counter::top))
+        .route("/api/xw_counter/counter_records", post(api::counter_record::add))
+        .route("/api/xw_counter/counter_records", get(api::counter_record::list))
         .layer(trace_layer)
         .with_state(pool);
 

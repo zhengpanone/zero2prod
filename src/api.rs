@@ -2,11 +2,13 @@ use axum::response::IntoResponse;
 use http::StatusCode;
 use jwt::AuthError;
 
+pub mod counter;
+pub mod counter_record;
 pub mod jwt;
 pub mod user;
-pub mod counter;
 
 pub enum ApiError {
+    NotFound,
     Auth(AuthError),
     Internal(anyhow::Error),
 }
@@ -27,6 +29,10 @@ impl From<AuthError> for ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
-        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        match self {
+            ApiError::NotFound => StatusCode::NOT_FOUND.into_response(),
+            ApiError::Auth(err) => err.into_response(),
+            ApiError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        }
     }
 }
