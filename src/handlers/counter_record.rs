@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use axum::{
     extract::{Path, State},
     Json,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
-use sqlx::{ Pool, Sqlite};
 
+use crate::AppState;
 use crate::db::CounterRecord;
+use crate::handlers::handlers::ApiError;
 
-use super::{counter::get_user_counter, jwt::Uid, ApiError};
+use super::{counter::get_user_counter, jwt::Uid};
 
 #[derive(Debug, Deserialize)]
 pub struct AddCounterRecord {
@@ -16,12 +19,13 @@ pub struct AddCounterRecord {
     pub step: i32,
 }
 
-pub async fn add(
+pub async fn add_counter_record(
     Uid(user_id): Uid,
-    State(pool): State<Pool<Sqlite>>,
+    State(state): State<Arc<AppState>>,
     Json(counter_record): Json<AddCounterRecord>,
 ) -> Result<Json<Value>, ApiError> {
-    let counter = get_user_counter(counter_record.counter_id, user_id, &pool).await?;
+    let pool = &state.db_pool;
+    let counter = get_user_counter(counter_record.counter_id, user_id, pool).await?;
     let next_value = counter.value + counter_record.step;
 
     sqlx::query(
@@ -34,22 +38,23 @@ pub async fn add(
     .bind(next_value)
     .bind(next_value)
     .bind(counter_record.counter_id)
-    .execute(&pool)
+    .execute(pool)
     .await?;
     Ok(Json(json!({})))
 }
 
-pub async fn list(
+pub async fn list_counter_record(
     Path(count_id): Path<i32>,
-    State(pool): State<Pool<Sqlite>>,
+    State(state): State<Arc<AppState>>,
     Uid(user_id): Uid,
 ) -> Result<Json<Vec<CounterRecord>>, ApiError> {
-    get_user_counter(count_id, user_id, &pool).await?;
+    let pool = &state.db_pool;
+    get_user_counter(count_id, user_id, pool).await?;
     let records = sqlx::query_as::<_, CounterRecord>(
         "select * from counter_records where counter_id = ? order by desc",
     )
     .bind(count_id)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
     Ok(Json(records))
 }

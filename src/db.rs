@@ -11,7 +11,7 @@ pub async fn establish_connection() -> Pool<Sqlite> {
     pool
 }
 #[derive(sqlx::FromRow, Debug, Serialize)]
-pub struct User {
+pub struct UserDO {
     pub id: i32,
     pub openid: String,
     pub session_key: String,
@@ -20,7 +20,7 @@ pub struct User {
 }
 
 #[derive(sqlx::FromRow, Debug, Serialize)]
-pub struct Counter {
+pub struct CounterDO {
     pub id: i32,
     pub user_id: i32,
     pub name: String,

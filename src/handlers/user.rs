@@ -1,11 +1,14 @@
+use std::sync::Arc;
+
 use axum::{extract::State, Json};
+use http::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Sqlite};
 
-use crate::{api::jwt::Claims, db::User};
+use crate::{AppState, db::UserDO, handlers::jwt::Claims};
+use crate::handlers::handlers::ApiError;
 
-use super::{jwt::AuthError, ApiError};
+use super::jwt::AuthError;
 
 #[derive(Deserialize)]
 pub struct LoginPayload {
@@ -27,14 +30,15 @@ impl AuthBody {
 }
 
 pub async fn login(
-    State(pool): State<Pool<Sqlite>>,
+    State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginPayload>,
 ) -> Result<Json<AuthBody>, ApiError> {
+    let pool = &state.db_pool;
     let wx_user = wx_login(payload.code).await?;
 
-    let user = sqlx::query_as::<_, User>("select * from users where openid = ?")
+    let user = sqlx::query_as::<_, UserDO>("select * from users where openid = ?")
         .bind(&wx_user.openid)
-        .fetch_one(&pool)
+        .fetch_one(pool)
         .await;
 
     let user = match user {
@@ -43,12 +47,12 @@ pub async fn login(
             sqlx::query("insert into users(openid,session_key) values(?, ?)")
                 .bind(&wx_user.openid)
                 .bind(&wx_user.session_key)
-                .execute(&pool)
+                .execute(pool)
                 .await?;
 
-            sqlx::query_as::<_, User>("select * from users where openid = ?")
+            sqlx::query_as::<_, UserDO>("select * from users where openid = ?")
                 .bind(&wx_user.openid)
-                .fetch_one(&pool)
+                .fetch_one(pool)
                 .await?
         }
         Err(e) => return Err(ApiError::from(e)),
@@ -65,13 +69,34 @@ pub async fn login(
     Ok(Json(rsp))
     // todo!()
 }
+
+
 #[derive(Deserialize, Default)]
 pub struct WxUser {
     pub openid: String,
     pub session_key: String,
 }
 // TODO
-async fn wx_login(code: String) -> Result<WxUser, ApiError> {
+pub async fn wx_login(code: String) -> Result<WxUser, ApiError> {
     
     Ok(WxUser::default())
+}
+
+pub async fn create_user(Json(payload): Json<CreateUser>) -> (StatusCode, Json<UserVO>) {
+    let user = UserVO {
+        id: 1337,
+        username: payload.username,
+    };
+    (StatusCode::CREATED, Json(user))
+}
+
+#[derive(Deserialize)]
+pub struct CreateUser {
+    username: String,
+}
+
+#[derive(Serialize)]
+pub struct UserVO {
+    id: u64,
+    username: String,
 }
