@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::db::CounterDO;
+
 use axum::{
     extract::{Path, State},
     Json
@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use sqlx::{Error, Pool, Sqlite};
 use crate::AppState;
 use crate::handlers::handlers::ApiError;
-
+use crate::models::counter::CounterDO;
 use super::{jwt::Uid};
 
 pub async fn list_counter(

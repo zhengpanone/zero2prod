@@ -2,13 +2,10 @@ use std::sync::Arc;
 use axum::Router;
 use crate::AppState;
 
-mod user;
-mod counter;
-mod counter_record;
-mod demo;
-
-
-
+pub mod user;
+pub mod counter;
+pub mod counter_record;
+pub mod demo;
 
 
 // 创建路由函数

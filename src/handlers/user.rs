@@ -5,7 +5,8 @@ use http::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppState, db::UserDO, handlers::jwt::Claims};
+use crate::{AppState,  handlers::jwt::Claims};
+use crate::db::user::{get_user_by_openid, insert_user};
 use crate::handlers::handlers::ApiError;
 
 use super::jwt::AuthError;
@@ -36,24 +37,12 @@ pub async fn login(
     let pool = &state.db_pool;
     let wx_user = wx_login(payload.code).await?;
 
-    let user = sqlx::query_as::<_, UserDO>("select * from users where openid = ?")
-        .bind(&wx_user.openid)
-        .fetch_one(pool)
-        .await;
-
+   let user =  get_user_by_openid(&pool,&wx_user.openid).await;
     let user = match user {
         Ok(user) => user,
         Err(sqlx::Error::RowNotFound) => {
-            sqlx::query("insert into users(openid,session_key) values(?, ?)")
-                .bind(&wx_user.openid)
-                .bind(&wx_user.session_key)
-                .execute(pool)
-                .await?;
-
-            sqlx::query_as::<_, UserDO>("select * from users where openid = ?")
-                .bind(&wx_user.openid)
-                .fetch_one(pool)
-                .await?
+            insert_user(&pool, &wx_user).await.expect("新增数据失败");
+            get_user_by_openid(&pool,&wx_user.openid).await?
         }
         Err(e) => return Err(ApiError::from(e)),
     };
@@ -65,7 +54,6 @@ pub async fn login(
     )
     .map_err(|_| AuthError::TokenCreation)?;
     let rsp = AuthBody::new(token);
-
     Ok(Json(rsp))
     // todo!()
 }

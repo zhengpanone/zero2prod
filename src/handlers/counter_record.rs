@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::AppState;
-use crate::db::CounterRecord;
+use crate::models::counter_record::CounterRecord;
 use crate::handlers::handlers::ApiError;
 
 use super::{counter::get_user_counter, jwt::Uid};
