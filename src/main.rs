@@ -9,7 +9,6 @@ use axum::error_handling::HandleErrorLayer;
 use axum::extract::Request;
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::any_service;
-use dotenvy::dotenv;
 use http::HeaderName;
 use serde_json::json;
 use tower::{BoxError, service_fn, ServiceBuilder};
@@ -24,6 +23,7 @@ mod handlers;// 路由处理模块
 mod models;   // 数据模型模块
 mod utils;    // 工具模块
 mod config;
+mod errors;
 
 use config::APP_CONFIG;
 use crate::db::connection::establish_connection;

@@ -29,4 +29,10 @@ rand = "0.8.5"
 hyper = "1.4.1"
 mime = "0.3.17"
 uuid = { version = "1.10.0", features = ["v4"] }
+bytes = "1.7.1"
+thiserror = "1.0.63"
+bcrypt = "0.15.1"
+argon2 = "0.5.3"
+ring = "0.16"
+hex = "0.4.3"
 

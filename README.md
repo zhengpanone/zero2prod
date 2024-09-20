@@ -1,6 +1,8 @@
 https://www.bilibili.com/video/BV13C4y1k7xJ/?p=2&spm_id_from=pageDriver
 https://blog.csdn.net/qq_36268452/article/details/128045377
 https://blog.csdn.net/qq_34168515/article/details/135162147
+
+https://github.com/lingdu1234/axum_admin
 ## 安装依赖
 
 ```shell

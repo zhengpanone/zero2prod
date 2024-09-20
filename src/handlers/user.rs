@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
-use http::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 
 use crate::{AppState,  handlers::jwt::Claims};
 use crate::db::user::{get_user_by_openid, insert_user};
+use crate::errors::Error;
 use crate::handlers::handlers::ApiError;
+use crate::utils::custom_response::CustomResponse;
 
 use super::jwt::AuthError;
 
@@ -70,12 +71,16 @@ pub async fn wx_login(code: String) -> Result<WxUser, ApiError> {
     Ok(WxUser::default())
 }
 
-pub async fn create_user(Json(payload): Json<CreateUser>) -> (StatusCode, Json<UserVO>) {
-    let user = UserVO {
-        id: 1337,
-        username: payload.username,
-    };
-    (StatusCode::CREATED, Json(user))
+pub async fn create_user(Json(payload): Json<CreateUser>) -> Result<CustomResponse<UserVO>,Error> {
+    // let user = UserVO {
+    //     id: 1337,
+    //     username: payload.username,
+    // };
+    //
+    // (StatusCode::CREATED, Json(user))
+    // Ok(res)
+    todo!()
+
 }
 
 #[derive(Deserialize)]
