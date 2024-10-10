@@ -19,10 +19,19 @@ pub async fn get_user_by_openid(pool: &SqlitePool, openid: &str) -> Result<UserD
     user
 }
 
-pub async fn insert_user(pool: &SqlitePool, wx_user: &WxUser) -> Result<(), sqlx::Error> {
+pub async fn insert_user_wx_user(pool: &SqlitePool, wx_user: &WxUser) -> Result<(), sqlx::Error> {
     sqlx::query_as!(UserDO, r#"insert into users(openid,session_key) values($1, $2)"#,
         wx_user.openid,
         wx_user.session_key)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn insert_user_by_do(pool: &SqlitePool, user_do: UserDO) -> Result<(), sqlx::Error> {
+    sqlx::query_as!(UserDO, r#"insert into users(openid,session_key) values($1, $2)"#,
+        user_do.openid,
+        user_do.session_key)
         .execute(pool)
         .await?;
     Ok(())
@@ -59,7 +68,7 @@ mod tests {
            openid: String::from(Uuid::new_v4()),
            session_key: "abcd".to_string(),
        };
-        let result = insert_user(&pool,wx_user).await;
+        let result = insert_user_wx_user(&pool,wx_user).await;
         assert!(result.is_ok());
     }
 

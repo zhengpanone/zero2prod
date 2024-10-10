@@ -1,14 +1,18 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
+
+use http::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppState,  handlers::jwt::Claims};
-use crate::db::user::{get_user_by_openid, insert_user};
-use crate::errors::Error;
+use crate::db::base::insert_selective;
+use crate::{handlers::jwt::Claims, utils, AppState};
+
+use crate::db::user::{get_user_by_openid, insert_user_wx_user};
 use crate::handlers::handlers::ApiError;
-use crate::utils::custom_response::CustomResponse;
+use crate::models::user::UserDO;
+use crate::utils::custom_response::ApiResponse;
 
 use super::jwt::AuthError;
 
@@ -16,6 +20,7 @@ use super::jwt::AuthError;
 pub struct LoginPayload {
     code: String,
 }
+
 #[derive(Serialize)]
 pub struct AuthBody {
     access_token: String,
@@ -38,16 +43,18 @@ pub async fn login(
     let pool = &state.db_pool;
     let wx_user = wx_login(payload.code).await?;
 
-   let user =  get_user_by_openid(&pool,&wx_user.openid).await;
+    let user = get_user_by_openid(&pool, &wx_user.openid).await;
     let user = match user {
         Ok(user) => user,
         Err(sqlx::Error::RowNotFound) => {
-            insert_user(&pool, &wx_user).await.expect("新增数据失败");
-            get_user_by_openid(&pool,&wx_user.openid).await?
+            insert_user_wx_user(&pool, &wx_user)
+                .await
+                .expect("新增数据失败");
+            get_user_by_openid(&pool, &wx_user.openid).await?
         }
         Err(e) => return Err(ApiError::from(e)),
     };
-    let claims = Claims::new(user.id.to_string());
+    let claims = Claims::new(user.id.unwrap().to_string());
     let token = encode(
         &Header::default(),
         &claims,
@@ -59,33 +66,52 @@ pub async fn login(
     // todo!()
 }
 
-
 #[derive(Deserialize, Default)]
 pub struct WxUser {
     pub openid: String,
     pub session_key: String,
 }
+
 // TODO
 pub async fn wx_login(code: String) -> Result<WxUser, ApiError> {
-    
     Ok(WxUser::default())
 }
 
-pub async fn create_user(Json(payload): Json<CreateUser>) -> Result<CustomResponse<UserVO>,Error> {
-    // let user = UserVO {
-    //     id: 1337,
-    //     username: payload.username,
-    // };
-    //
-    // (StatusCode::CREATED, Json(user))
-    // Ok(res)
-    todo!()
+pub async fn create_user(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CreateUser>,
+) -> Result<ApiResponse<()>, ApiError> {
+    /*let pool = &state.db_pool;
+    let password_hash = utils::encrypt::hash_password(body.password, utils::encrypt::HashAlgorithm::Bcrypt).await?;
+    let user = UserDO::new(body.username, body.email, password_hash);
+    // 插入用户数据
+    insert_selective(pool, user).await.expect("TODO: panic message");
+    let res = CustomResponseBuilder::new()
+        .body(())
+        .status_code(StatusCode::CREATED)
+        .build();
+    Ok(res)*/
+    let pool = &state.db_pool;
+    let password_hash =
+        utils::encrypt::hash_password(body.password, utils::encrypt::HashAlgorithm::Bcrypt).await?;
+    let user = UserDO::new(body.username, body.email, password_hash);
+    insert_selective(pool, user)
+        .await
+        .expect("Failed to insert user");
 
+    let response = ApiResponse::<()>::new(
+        None,
+        Some("User created successfully".into()),
+        StatusCode::CREATED,
+    );
+    Ok(response)
 }
 
 #[derive(Deserialize)]
 pub struct CreateUser {
     username: String,
+    email: String,
+    password: String,
 }
 
 #[derive(Serialize)]

@@ -24,6 +24,7 @@ mod models;   // 数据模型模块
 mod utils;    // 工具模块
 mod config;
 mod errors;
+mod common;
 
 use config::APP_CONFIG;
 use crate::db::connection::establish_connection;

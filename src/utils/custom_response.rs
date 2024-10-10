@@ -3,21 +3,34 @@ use http::{header, HeaderValue, StatusCode};
 use serde::Serialize;
 use bytes::{BufMut, BytesMut};
 use tracing::log::error;
+use crate::errors::Error;
 
-#[derive(Debug)]
-pub struct CustomResponse<T: Serialize> {
-    pub body: Option<T>,
+
+pub type ApiResponseResult<T> = Result<ApiResponse<T>, Error>;
+#[derive(Debug, Serialize)]
+pub struct ApiResponse<T> {
+    pub data: Option<T>,
+    pub message: Option<String>,
+    #[serde(serialize_with = "serialize_status_code")]
     pub status_code: StatusCode,
     pub pagination: Option<ResponsePagination>,
 }
 
-pub struct ResponseBuilder<T: Serialize> {
-    pub body: Option<T>,
+// 自定义序列化函数
+fn serialize_status_code<S>(status_code: &StatusCode, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_u16(status_code.as_u16())
+}
+
+pub struct ApiResponseBuilder<T: Serialize> {
+    pub data: Option<T>,
     pub status_code: StatusCode,
     pub pagination: Option<ResponsePagination>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ResponsePagination {
     pub count: u64,
     pub offset: u64,
@@ -25,28 +38,28 @@ pub struct ResponsePagination {
 }
 
 
-impl<T> Default for ResponseBuilder<T>
+impl<T> Default for ApiResponseBuilder<T>
 where
     T: Serialize,
 {
     fn default() -> Self {
         Self {
-            body: None,
+            data: None,
             status_code: StatusCode::OK,
             pagination: None,
         }
     }
 }
 
-impl<T> ResponseBuilder<T>
+impl<T> ApiResponseBuilder<T>
 where
     T: Serialize,
 {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn body(mut self, body: T) -> Self {
-        self.body = Some(body);
+    pub fn body(mut self, data: T) -> Self {
+        self.data = Some(data);
         self
     }
     pub fn status_code(mut self, status_code: StatusCode) -> Self {
@@ -58,26 +71,25 @@ where
         self.pagination = Some(pagination);
         self
     }
-    pub fn build(self) -> CustomResponse<T> {
-        CustomResponse {
-            body: self.body,
+    pub fn build(self) -> ApiResponse<T> {
+        ApiResponse {
+            data: self.data,
+            message: None,
             status_code: self.status_code,
             pagination: self.pagination,
         }
     }
 }
 
-impl<T> IntoResponse for CustomResponse<T>
-where
-    T: Serialize,
+impl<T:Serialize> IntoResponse for ApiResponse<T>
 {
     fn into_response(self) -> axum::response::Response {
-        let body = match self.body {
+        let data = match self.data {
             Some(body) => body,
             None => return (self.status_code).into_response(),
         };
         let mut bytes = BytesMut::new().writer();
-        if let Err(err) = serde_json::to_writer(&mut bytes, &body) {
+        if let Err(err) = serde_json::to_writer(&mut bytes, &data) {
             error!("Error serializing response body as JSON: {:?}", err);
             return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
         }
@@ -105,5 +117,17 @@ impl IntoResponseParts for ResponsePagination {
         res.headers_mut().insert("x-pagination-limit", self.limit.into());
 
         Ok(res)
+    }
+}
+
+
+impl<T: Serialize> ApiResponse<T> {
+    pub fn new(data: Option<T>, message: Option<String>, status_code: StatusCode) -> Self {
+        Self {
+            data,
+            message,
+            status_code,
+            pagination: None,
+        }
     }
 }

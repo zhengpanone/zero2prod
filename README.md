@@ -3,6 +3,7 @@ https://blog.csdn.net/qq_36268452/article/details/128045377
 https://blog.csdn.net/qq_34168515/article/details/135162147
 
 https://github.com/lingdu1234/axum_admin
+https://github.com/ndelvalle/rustapi/blob/master/src/utils/custom_response.rs
 ## 安装依赖
 
 ```shell
