@@ -12,8 +12,8 @@ use http::{HeaderMap, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::time::sleep;
+use crate::errors::{BadRequest, Error, NotFound};
 
-use crate::AppError;
 
 pub async fn return_static() -> &'static str {
     "Hello, World!"
@@ -32,6 +32,7 @@ pub async fn handle_path(Path(id): Path<String>) -> Json<serde_json::Value> {
 pub struct RequestData {
     ids: Vec<i32>, // Assuming you're expecting a vector of integers
 }
+
 pub async fn handle_json(Json(req): Json<RequestData>) -> Json<serde_json::Value> {
     let result = req.ids;
     Json(json!({ "data": result }))
@@ -43,13 +44,13 @@ pub async fn query_handler(Query(params): Query<HashMap<String, String>>) -> Str
 
 
 // 示例路由处理函数，返回错误或正常响应
-pub async fn error_handler() -> Result<&'static str, AppError> {
-    Err(AppError::BadRequest("Invalid request data".into()))
+pub async fn error_handler() -> Result<&'static str, Error> {
+    Err(Error::BadRequest(BadRequest {}))
 }
 
-pub async fn not_found_handler() -> Result<&'static str, AppError> {
+pub async fn not_found_handler() -> Result<&'static str, Error> {
     // 返回一个 NotFound 错误
-    Err(AppError::NotFound)
+    Err(Error::NotFound(NotFound {}))
 }
 
 pub async fn header_handler(TypedHeader(user_agent): TypedHeader<UserAgent>) -> String {
@@ -84,8 +85,8 @@ where
     }
 }
 
-pub async fn handler_template(Path(name): Path<String>) ->  impl IntoResponse {
-    let tpl = HelloTemplate{name};
+pub async fn handler_template(Path(name): Path<String>) -> impl IntoResponse {
+    let tpl = HelloTemplate { name };
     TemplateRespone(tpl)
 }
 
@@ -95,10 +96,9 @@ pub async fn index_handler(req: Request<Body>) -> String {
     }
     if let Some(req_id) = req.headers().get("x-request-id") {
         // CompressionLayer只有当长度大于32时才会压缩
-        format!("request[{:?}] {} with method {} ; make the body length longer than 32", req_id ,req.uri(), req.method())
+        format!("request[{:?}] {} with method {} ; make the body length longer than 32", req_id, req.uri(), req.method())
     } else {
         format!("request[none] {} with method {} ; make the body length longer than 32", req.uri(), req.method())
     }
-
 }
 

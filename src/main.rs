@@ -3,23 +3,22 @@ use std::net::Ipv4Addr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::{http::StatusCode, Json, Router};
+use axum::{http::StatusCode, Router};
 use axum::body::Body;
 use axum::error_handling::HandleErrorLayer;
 use axum::extract::Request;
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::any_service;
 use http::HeaderName;
-use serde_json::json;
 use tower::{BoxError, service_fn, ServiceBuilder};
 use tower_http::request_id::{MakeRequestUuid, SetRequestIdLayer};
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
-use tracing::Level;
+use tracing::{Level, log};
 
 mod db;       // 数据库模块
 mod routers;
-mod handlers;// 路由处理模块
+mod handlers; // 路由处理模块
 mod models;   // 数据模型模块
 mod utils;    // 工具模块
 mod config;
@@ -28,34 +27,6 @@ mod common;
 
 use config::APP_CONFIG;
 use crate::db::connection::establish_connection;
-
-
-
-
-// 定义自定义错误类型
-enum AppError {
-    NotFound,
-    BadRequest(String),
-}
-
-// 实现 IntoResponse trait，以便将 AppError 转换为 HTTP 响应
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        match self {
-            AppError::NotFound => (
-                StatusCode::NOT_FOUND,
-                "The requested resource was not found",
-            ).into_response(),
-            AppError::BadRequest(message) => {
-                // 返回 400 状态码和 JSON 消息
-                let body = Json(json!({
-                    "error": message,
-                }));
-                (StatusCode::BAD_REQUEST, body).into_response()
-            }
-        }
-    }
-}
 
 
 // 自定义中间件处理错误
@@ -124,8 +95,8 @@ fn app(state: AppState) -> Router {
 
 #[tokio::main]
 async fn main() {
-    println!("{}", APP_CONFIG.server_port);
-    println!("{}", APP_CONFIG.test.debug);
+    log::info!("{}", APP_CONFIG.server_port);
+    log::info!("{}", APP_CONFIG.test.debug);
 
     // 创建数据库连接池
     let pool = establish_connection().await;
@@ -144,7 +115,7 @@ async fn main() {
     let addr = format!("{}:{}", Ipv4Addr::UNSPECIFIED, 8099);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    println!("listening on http://{:?}", listener.local_addr().unwrap());
+    log::info!("listening on http://{:?}", listener.local_addr().unwrap());
     axum::serve(listener, app(state)).await.unwrap();
 }
 

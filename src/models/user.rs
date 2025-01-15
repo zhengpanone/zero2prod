@@ -2,12 +2,13 @@ use std::collections::HashMap;
 use std::fmt;
 
 use serde::Serialize;
+use serde_json::json;
 use sqlx::types::JsonValue;
 use time::format_description::well_known::Rfc3339;
 use time::PrimitiveDateTime;
 
 use crate::common::enums::LockedStatus;
-use crate::db::base::InsertTable;
+use crate::db::base::{InsertTable, SelectTable, Table};
 use crate::utils::date;
 
 // 定义用户数据对象 UserDO
@@ -31,13 +32,20 @@ impl fmt::Display for UserDO {
     }
 }
 
+impl Table for UserDO {
+    fn table_name() ->String {
+        "users".to_string()
+    }
+}
+
 impl InsertTable for UserDO {
     fn to_fields(&self) -> HashMap<&'static str, Option<JsonValue>> {
         let mut fields = HashMap::new();
-        fields.insert("openid", self.openid.clone().map(JsonValue::from));
-        fields.insert("username", Option::from(self.username.clone()).map(JsonValue::from));
-        fields.insert("email", Option::from(self.email.clone()).map(JsonValue::from));
-        fields.insert("password", Option::from(self.password.clone()).map(JsonValue::from));
+        // fields.insert("openid", self.openid.clone().map(JsonValue::from));
+        fields.insert("username", Some(JsonValue::from(self.username.clone())));
+
+        fields.insert("email", Some(JsonValue::from(self.email.clone())));
+        fields.insert("password", Some(JsonValue::from(self.password.clone())));
         fields.insert("session_key", self.session_key.clone().map(JsonValue::from));
         // 时间类型的字段转换为字符串
         fields.insert(
@@ -51,9 +59,44 @@ impl InsertTable for UserDO {
         fields.insert("locked_at", self.locked_at.map(|status| status.as_u8().to_string()).map(JsonValue::from));
         fields
     }
+}
 
-    fn table_name() -> &'static str {
-        "users"
+
+impl SelectTable for UserDO {
+    fn to_conditions(&self) -> HashMap<&'static str, Option<JsonValue>> {
+        let mut conditions = HashMap::new();
+        // 通过每个字段的值来生成查询条件
+        if let Some(id) = self.id {
+            conditions.insert("id", Some(json!(id)));
+        } else {
+            conditions.insert("id", None);
+        }
+        if let Some(ref openid) = self.openid {
+            conditions.insert("openid", Some(json!(openid)));
+        } else {
+            conditions.insert("openid", None);
+        }
+        conditions.insert("username", Some(json!(self.username.clone())));
+        conditions.insert("email", Some(json!(self.email.clone())));
+        conditions.insert("password", Some(json!(self.password.clone())));
+        if let Some(ref session_key) = self.session_key {
+            conditions.insert("session_key", Some(json!(session_key)));
+        } else {
+            conditions.insert("session_key", None);
+        }
+
+        // 锁定状态字段的处理
+        if let Some(locked_at) = &self.locked_at {
+            conditions.insert("locked_at", Some(json!(locked_at)));
+        } else {
+            conditions.insert("locked_at", None);
+        }
+
+        // 创建时间和更新时间
+        conditions.insert("create_at", Some(json!(self.create_at)));
+        conditions.insert("update_at", Some(json!(self.update_at)));
+
+        conditions
     }
 }
 

@@ -81,16 +81,6 @@ pub async fn create_user(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateUser>,
 ) -> Result<ApiResponse<()>, ApiError> {
-    /*let pool = &state.db_pool;
-    let password_hash = utils::encrypt::hash_password(body.password, utils::encrypt::HashAlgorithm::Bcrypt).await?;
-    let user = UserDO::new(body.username, body.email, password_hash);
-    // 插入用户数据
-    insert_selective(pool, user).await.expect("TODO: panic message");
-    let res = CustomResponseBuilder::new()
-        .body(())
-        .status_code(StatusCode::CREATED)
-        .build();
-    Ok(res)*/
     let pool = &state.db_pool;
     let password_hash =
         utils::encrypt::hash_password(body.password, utils::encrypt::HashAlgorithm::Bcrypt).await?;

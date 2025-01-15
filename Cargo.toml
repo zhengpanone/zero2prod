@@ -26,7 +26,7 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 askama = "0.12"
 rand = "0.8.5"
-hyper = "1.4.1"
+hyper ={version="1.4.1", features=["full"]} 
 mime = "0.3.17"
 uuid = { version = "1.10.0", features = ["v4"] }
 bytes = "1.7.1"
@@ -36,4 +36,5 @@ argon2 = "0.5.3"
 ring = "0.16"
 hex = "0.4.3"
 async-trait = "0.1.82"
+tokio-util = "0.7.12"
 
