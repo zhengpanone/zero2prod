@@ -1,5 +1,6 @@
 # https://blog.csdn.net/qq_45090256/article/details/125476170
 tab_spaces = 4
+max_width = 100
 edition="2021"
 format_code_in_doc_comments = true
 format_strings = true

@@ -54,7 +54,6 @@ pub struct AppState {
 /// 便于测试用例获取router实例
 #[allow(dead_code)]
 fn app(state: AppState) -> Router {
-
     let shared_state = Arc::new(state);
 
     // // 定义跟踪层 添加请求跟踪日志中间件
@@ -95,24 +94,25 @@ fn app(state: AppState) -> Router {
 
 #[tokio::main]
 async fn main() {
-    log::info!("{}", APP_CONFIG.server_port);
+    // initialize tracing
+    tracing_subscriber::fmt()
+        .with_max_level(Level::INFO) // 设置最大日志级别
+        .with_target(false)
+        .compact()
+        .init();
+    let server_port = APP_CONFIG.server.port;
+    log::info!("服务端口号：{:?}", server_port);
     log::info!("{}", APP_CONFIG.test.debug);
 
     // 创建数据库连接池
     let pool = establish_connection().await;
     // 创建共享状态
     let state = AppState {
-        app_name: String::from("My Axum App"),
-        db_pool:pool,  // 传入数据库连接池
+        app_name: APP_CONFIG.application.name.clone(),
+        db_pool: pool,  // 传入数据库连接池
     };
 
-    // initialize tracing
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .compact()
-        .init();
-
-    let addr = format!("{}:{}", Ipv4Addr::UNSPECIFIED, 8099);
+    let addr = format!("{}:{}", Ipv4Addr::UNSPECIFIED, server_port);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     log::info!("listening on http://{:?}", listener.local_addr().unwrap());
@@ -146,8 +146,8 @@ mod tests {
         let pool = establish_connection().await;
         // 创建共享状态
         let state = AppState {
-            app_name: String::from("My Axum App"),
-            db_pool:pool,  // 传入数据库连接池
+            app_name: String::from("Axum App"),
+            db_pool: pool,  // 传入数据库连接池
         };
 
         let app = app(state);
@@ -174,7 +174,7 @@ mod tests {
         // 创建共享状态
         let state = AppState {
             app_name: String::from("My Axum App"),
-            db_pool:pool,  // 传入数据库连接池
+            db_pool: pool,  // 传入数据库连接池
         };
         let app = app(state);
 
@@ -194,9 +194,8 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = axum::body::to_bytes(response.into_body(),1000).await.unwrap();
+        let body = axum::body::to_bytes(response.into_body(), 1000).await.unwrap();
         let body: Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, json!({ "data": [1, 2, 3, 4] }));
     }
-
 }

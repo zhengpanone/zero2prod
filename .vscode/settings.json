@@ -1,13 +1,5 @@
 {
-  "sqltools.connections": [
-    {
-      "previewLimit": 50,
-      "driver": "SQLite",
-      "name": "axum-dev",
-      "database": "${workspaceFolder:zero2prod}/data.db",
-      "group": "sqlite"
-    }
-  ],
+  "sqltools.connections": [],
   "sqltools.useNodeRuntime": true,
   "rest-client.environmentVariables": {
     "$shared": {

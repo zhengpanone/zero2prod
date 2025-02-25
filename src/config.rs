@@ -6,16 +6,41 @@ use serde_yaml;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
-    pub server_port: i32,
+    pub server: Server,
+    pub application: Application,
     pub test: TestConf,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
+            server: Server::default(),
+            application: Application::default(),
             test: TestConf::default(),
-            server_port: 8099,
         }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Server {
+    pub port: i32,
+}
+
+impl Default for Server {
+    fn default() -> Self {
+        Self { port: 8090 }
+    }
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Application {
+    pub name: String,
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self { name: String::from("Axum App") }
     }
 }
 

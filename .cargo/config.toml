@@ -1,0 +1,2 @@
+[build]
+rustflags = ["-A", "dead_code","-A","unused_variables"] # 关闭dead_code警告,unused_variables警告
