@@ -10,8 +10,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gmall
-  REDIS_URL: redis://redis:6379
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gmall
+  REDIS_URL: redis://localhost:6379
   JWT_SECRET: "test-secret-key"
 
 jobs:
