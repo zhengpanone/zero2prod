@@ -1,40 +1,71 @@
 [package]
 name = "zero2prod"
 version = "0.1.0"
-authors = ["zhengpanone <zhengpanone@hotmail.com>"]
 edition = "2021"
+description = "A Rust project"
+authors = [""]
 
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.80"
-axum = { version = "0.7.4", features = ["default"] }
-axum-extra = { version = "0.9.3", features = ["typed-header"] }
-dotenvy = "0.15.7"
-http = "1.0.0"
-jsonwebtoken = "9.3.0"
-lazy_static = "1.4.0"
-reqwest = { version = "0.12.5", features = ["json", "rustls-tls", "multipart"],default-features=false}
-serde = { version = "1.0.197", features = ["derive"]}
-serde_json = "1.0.114"
-serde_yaml = "0.9.34"
-sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "tls-rustls", "time"] }
-time = { version = "0.3.34", features = ["serde-human-readable", "local-offset"] }
-tokio = { version = "1.36.0", features = ["full"] }
-tower = { version = "0.4.13", features = ["timeout"] }
-tower-http = { version = "0.5.2", features = ["full"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-askama = "0.12"
-rand = "0.8.5"
-hyper ={version="1.4.1", features=["full"]} 
-mime = "0.3.17"
-uuid = { version = "1.10.0", features = ["v4"] }
-bytes = "1.7.1"
-thiserror = "1.0.63"
-bcrypt = "0.15.1"
-argon2 = "0.5.3"
-ring = "0.16"
-hex = "0.4.3"
-async-trait = "0.1.82"
-tokio-util = "0.7.12"
+# Web Framework
+axum = { version = "0.8.6", features = ["macros"] }
+tokio = { version = "1.48.0", features = ["full"] } #异步运行时
+tower = { version = "0.5.2", features = ["util", "limit", "timeout"] }
+tower-http = { version = "0.6.6", features = [
+    "trace",
+    "cors",
+    "compression-full",
+    "request-id",
+] }
 
+# 序列化
+serde = { version = "1.0.228", features = ["derive"] } # 序列化
+serde_json = "1.0.145"
+
+# Tracing & Logging
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = [
+    "env-filter",
+    "fmt",
+    "json",
+] }
+
+# Error Handling                                                      # 结构化日志
+anyhow = "1.0.94"
+thiserror = "2.0.17"
+
+# Utilities
+chrono = { version = "0.4.42", features = ["serde"] }
+uuid = { version = "1.18.1", features = ["serde", "v4"] }
+validator = { version = "0.20.0", features = ["derive"] }
+
+# API Documentation
+utoipa = { version = "5.4.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+utoipa-axum = { version = "0.2.0" }
+utoipa-redoc = { version = "6.0.0", features = ["axum"] }
+utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }
+
+# Database
+sqlx = { version = "0.8.6", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "macros",
+    "migrate",
+    "uuid",
+    "chrono",
+] }
+# migrate 特性是必须启用的，否则 sqlx::migrate!() 宏会被编译为空。
+# sqlx 必须启用 uuid + chrono，否则不会自动实现 FromRow
+
+# Configuration
+dotenvy = "0.15.7"
+argon2 = "0.5.3"
+jsonwebtoken = { version = "10.0.0", features = ["rust_crypto"] }
+bcrypt = "0.17.1"
+
+[dev-dependencies]
+sqlx-cli = { version = "0.8.6", features = ["postgres", "rustls"] }

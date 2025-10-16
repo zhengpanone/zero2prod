@@ -1,111 +1,101 @@
-use std::sync::Arc;
+use axum::{Json, extract::{Path, State}, http::StatusCode};
+use utoipa::OpenApi;
+use uuid::Uuid;
+use crate::{
+	error::{ApiError, Result}, 
+    models::user::User, schemas::{common_schemas::IdsRequest, user_schemas::{CreateUserRequest, UpdateUserRequest, UserResponse}}, 
+    services::user_service::UserService, state::AppState
+};
 
-use axum::{extract::State, Json};
+const TAG_NAME: &str = "User API";
 
-use http::StatusCode;
-use jsonwebtoken::{encode, EncodingKey, Header};
-use serde::{Deserialize, Serialize};
-
-use crate::db::base::insert_selective;
-use crate::{handlers::jwt::Claims, utils, AppState};
-
-use crate::db::user::{get_user_by_openid, insert_user_wx_user};
-use crate::handlers::handlers::ApiError;
-use crate::models::user::UserDO;
-use crate::utils::custom_response::ApiResponse;
-
-use super::jwt::AuthError;
-
-#[derive(Deserialize)]
-pub struct LoginPayload {
-    code: String,
-}
-
-#[derive(Serialize)]
-pub struct AuthBody {
-    access_token: String,
-    token_type: String,
-}
-
-impl AuthBody {
-    fn new(access_token: String) -> Self {
-        Self {
-            access_token,
-            token_type: "Bearer".to_string(),
-        }
-    }
-}
-
-pub async fn login(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<LoginPayload>,
-) -> Result<Json<AuthBody>, ApiError> {
-    let pool = &state.db_pool;
-    let wx_user = wx_login(payload.code).await?;
-
-    let user = get_user_by_openid(&pool, &wx_user.openid).await;
-    let user = match user {
-        Ok(user) => user,
-        Err(sqlx::Error::RowNotFound) => {
-            insert_user_wx_user(&pool, &wx_user)
-                .await
-                .expect("新增数据失败");
-            get_user_by_openid(&pool, &wx_user.openid).await?
-        }
-        Err(e) => return Err(ApiError::from(e)),
-    };
-    let claims = Claims::new(user.id.unwrap().to_string());
-    let token = encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(b"secret"),
-    )
-    .map_err(|_| AuthError::TokenCreation)?;
-    let rsp = AuthBody::new(token);
-    Ok(Json(rsp))
-    // todo!()
-}
-
-#[derive(Deserialize, Default)]
-pub struct WxUser {
-    pub openid: String,
-    pub session_key: String,
-}
-
-// TODO
-pub async fn wx_login(code: String) -> Result<WxUser, ApiError> {
-    Ok(WxUser::default())
-}
-
+/// 创建用户
+#[utoipa::path(
+    post, 
+    path = "/create", 
+    tag = TAG_NAME,
+    request_body=CreateUserRequest,
+responses(
+    (status=201,description="创建用户",body=UserResponse),
+    (status=400,description="请求参数错误",body=ApiError),
+    (status=422,description="验证失败",body=ApiError),
+    (status=500,description="服务器错误",body=ApiError)
+)
+)]
 pub async fn create_user(
-    State(state): State<Arc<AppState>>,
-    Json(body): Json<CreateUser>,
-) -> Result<ApiResponse<()>, ApiError> {
-    let pool = &state.db_pool;
-    let password_hash =
-        utils::encrypt::hash_password(body.password, utils::encrypt::HashAlgorithm::Bcrypt).await?;
-    let user = UserDO::new(body.username, body.email, password_hash);
-    insert_selective(pool, user)
-        .await
-        .expect("Failed to insert user");
-
-    let response = ApiResponse::<()>::new(
-        None,
-        Some("User created successfully".into()),
-        StatusCode::CREATED,
-    );
-    Ok(response)
+	State(state): State<AppState>,
+	Json(req): Json<CreateUserRequest>,
+) -> Result<(StatusCode, Json<UserResponse>)> {
+	let user_service = UserService::new(state);
+    let user = user_service.create_user(req).await?;
+    let user_response = UserResponse::from(user);
+    Ok((StatusCode::CREATED, Json(user_response)))
 }
 
-#[derive(Deserialize)]
-pub struct CreateUser {
-    username: String,
-    email: String,
-    password: String,
+/// 删除用户
+#[utoipa::path(
+    delete,
+    path = "/delete",
+    tag = TAG_NAME,
+    request_body=IdsRequest,
+    responses(
+        (status = 204, description = "用户删除成功"),
+        (status = 404, description = "用户不存在", body = ApiError),
+        (status = 500, description = "内部服务器错误", body = ApiError)
+    )
+)]
+pub async fn delete_user(State(state): State<AppState>,
+Json(req): Json<IdsRequest>)->Result<StatusCode>{
+    let user_service = UserService::new(state);
+    let result = user_service.delete_user(req).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
-pub struct UserVO {
-    id: u64,
-    username: String,
+/// 更新用户
+#[utoipa::path(
+    put,
+    path = "/update/{id}",
+    tag = TAG_NAME,
+    request_body=UpdateUserRequest,
+    params(
+        ("id" = Uuid, Path, description = "用户ID")
+    ),
+    responses(
+        (status = 204, description = "用户更新成功"),
+        (status = 404, description = "用户不存在", body = ApiError),
+        (status = 500, description = "内部服务器错误", body = ApiError)
+    )
+)]
+pub async fn update_user(State(state): State<AppState>,
+Path(id): Path<Uuid>,
+Json(req): Json<UpdateUserRequest>)->Result<(StatusCode,Json<UserResponse>)>{
+    let user_service = UserService::new(state);
+    let user = user_service.update_user(id,req).await?;
+    let user_response = UserResponse::from(user);
+    Ok((StatusCode::OK, Json(user_response)))
 }
+
+/// 获取用户列表
+#[utoipa::path(
+    get,
+    path="/list",
+    tag=TAG_NAME,
+    responses((status=200,description="成功获取用户列表",body=[User]),
+    (status=500,description="服务器内部错误",body=ApiError))
+)]
+pub async fn list_users(State(state): State<AppState>) -> Result<Json<Vec<User>>> {
+    let user_service = UserService::new(state);
+    let user_list=user_service.list_users().await?;
+    Ok(Json(user_list))
+}
+
+
+
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(list_users, create_user,delete_user,update_user),
+    tags((name = "User API", description = "User management"))
+)]
+pub struct UserApiDoc;
+

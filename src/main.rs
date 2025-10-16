@@ -1,201 +1,96 @@
-use std::convert::Infallible;
-use std::net::Ipv4Addr;
-use std::sync::Arc;
-use std::time::Duration;
-
-use axum::{http::StatusCode, Router};
-use axum::body::Body;
-use axum::error_handling::HandleErrorLayer;
-use axum::extract::Request;
-use axum::response::{Html, IntoResponse, Response};
-use axum::routing::any_service;
-use http::HeaderName;
-use tower::{BoxError, service_fn, ServiceBuilder};
-use tower_http::request_id::{MakeRequestUuid, SetRequestIdLayer};
-use tower_http::trace;
-use tower_http::trace::TraceLayer;
-use tracing::{Level, log};
-
-mod db;       // 数据库模块
-mod routers;
-mod handlers; // 路由处理模块
-mod models;   // 数据模型模块
-mod utils;    // 工具模块
+use crate::{config::config::Config, state::AppState};
+use dotenvy::dotenv;
+use std::net::SocketAddr;
+use tokio::signal;
+use tracing::{info, warn};
+use tracing_subscriber::FmtSubscriber;
 mod config;
-mod errors;
-mod common;
-
-use config::APP_CONFIG;
-use crate::db::connection::establish_connection;
-
-
-// 自定义中间件处理错误
-async fn handle_error(err: BoxError) -> impl IntoResponse {
-    if err.is::<tower::timeout::error::Elapsed>() {
-        // 处理请求超时的情况
-        (StatusCode::REQUEST_TIMEOUT, "Request took too long").into_response()
-    } else {
-        // 处理其他错误
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Unhandled internal error: {}", err),
-        )
-            .into_response()
-    }
-}
-
-#[derive(Clone)]
-pub struct AppState {
-    pub app_name: String,
-    pub db_pool: sqlx::SqlitePool,  // 数据库连接池
-}
-
-
-/// 便于测试用例获取router实例
-#[allow(dead_code)]
-fn app(state: AppState) -> Router {
-    let shared_state = Arc::new(state);
-
-    // // 定义跟踪层 添加请求跟踪日志中间件
-    let trace_layer = TraceLayer::new_for_http()
-        .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-        .on_request(trace::DefaultOnRequest::new().level(Level::INFO))
-        .on_response(trace::DefaultOnResponse::new().level(Level::INFO));
-
-    // 定义超时层
-    let timeout_layer = tower::timeout::TimeoutLayer::new(Duration::from_secs(30));
-
-    // 将共享状态传递给路由
-    let app = routers::create_app(shared_state)
-        // 使用 `handle_error` 作为全局错误处理的中间件
-        .layer(
-            // 官方推荐在ServiceBuilder上一次性载入
-            ServiceBuilder::new()
-                // 使用 HandleErrorLayer 捕获并处理错误
-                .layer(HandleErrorLayer::new(handle_error))
-                // 需要设置一个请求头的键名，一般叫x-request-id
-                .layer(SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid))
-                // 默认情况下不放行，所以需要根据自己需求设置必要的允许规则。
-                // .layer(CorsLayer::new().allow_methods(axum::http::Method::GET).allow_origin(Any))
-                .layer(trace_layer)
-                .layer(timeout_layer)
-        )
-        .route(
-            "/service1",
-            any_service(service_fn(|req: Request<Body>| async move {
-                let body = Body::from(format!("Hi from `{} /service1`", req.method()));
-                let res = Response::new(body);
-                Ok::<_, Infallible>(res)
-            })))
-        .fallback(fallback);
-
-    app
-}
+mod db;
+mod error;
+mod handlers;
+mod middleware;
+mod models;
+mod repositories;
+mod routers;
+mod schemas;
+mod services;
+mod state;
+mod utils;
 
 #[tokio::main]
-async fn main() {
-    // initialize tracing
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO) // 设置最大日志级别
-        .with_target(false)
-        .compact()
-        .init();
-    let server_port = APP_CONFIG.server.port;
-    log::info!("服务端口号：{:?}", server_port);
-    log::info!("{}", APP_CONFIG.test.debug);
+async fn main() -> anyhow::Result<()> {
+	// 加载环境变量
+	dotenv().ok();
+	// 加载配置
+	let config = Config::from_env()?;
 
-    // 创建数据库连接池
-    let pool = establish_connection().await;
-    // 创建共享状态
-    let state = AppState {
-        app_name: APP_CONFIG.application.name.clone(),
-        db_pool: pool,  // 传入数据库连接池
-    };
+	// 初始化日志订阅器
+	let subscriber = FmtSubscriber::builder()
+		.with_max_level(tracing::Level::INFO)
+		.finish();
+	tracing::subscriber::set_global_default(subscriber)
+		.expect("setting default subscriber failed");
 
-    let addr = format!("{}:{}", Ipv4Addr::UNSPECIFIED, server_port);
+	info!("Starting server...");
 
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    log::info!("listening on http://{:?}", listener.local_addr().unwrap());
-    axum::serve(listener, app(state)).await.unwrap();
+	// 创建应用状态
+	let state = AppState::new(config.clone()).await?;
+
+	// 构建路由
+	let app = routers::create_router(state);
+
+	let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
+
+	let listener = tokio::net::TcpListener::bind(addr).await?;
+
+	info!(
+		"Starting web server at http://127.0.0.1:{}",
+		config.server.port
+	);
+
+	axum::serve(listener, app)
+		.with_graceful_shutdown(shutdown_signal())
+		.await?;
+
+	Ok(())
 }
 
+/// 捕获系统信号，触发优雅关闭
+async fn shutdown_signal() {
+	info!("🔌 Waiting for shutdown signal (Ctrl+C or SIGTERM)...");
+	// Ctrl+C 信号（跨平台支持）
+	let ctrl_c = async {
+		signal::ctrl_c()
+			.await
+			.expect("failed to install Ctrl+C handler");
+		info!("🧹 Received Ctrl+C");
+	};
+	// Unix 平台支持 SIGTERM
+	#[cfg(unix)]
+	let terminate = async {
+		// signal::unix::signal(signal::unix::SignalKind::terminate())
+		// 	.expect("failed to install signal handler")
+		// 	.recv()
+		// 	.await;
+		match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+			Ok(mut term) => {
+				term.recv().await;
+				info!("🧹 Received SIGTERM");
+			}
+			Err(e) => {
+				warn!("⚠️ Failed to install SIGTERM handler: {e}");
+			}
+		}
+	};
+	// Windows 不支持 SIGTERM，pending 替代
+	#[cfg(not(unix))]
+	let terminate = std::future::pending::<()>();
 
-async fn fallback() -> Html<&'static str> {
-    Html("<h1>404</h1>")
-}
+	// 等待任意信号触发
+	tokio::select! {
+		_=ctrl_c=>{},
+		_=terminate=>{},
+	}
 
-#[cfg(test)]
-mod tests {
-    use axum::{
-        body::Body,
-        http::{self, Request, StatusCode},
-    };
-    use dotenvy::dotenv;
-    use serde_json::{json, Value};
-    // 实现了trait的对象要trait当前环境才能调用, 所以引用Service trait
-    use tower::ServiceExt;
-    use crate::db::connection::establish_connection;
-
-    use super::*;
-
-    // 提供`oneshot` 和 `ready`的便捷方法
-    #[tokio::test]
-    async fn hello_world() {
-        dotenv().ok(); // 加载 .env 文件中的环境变量
-        // 创建数据库连接池
-        let pool = establish_connection().await;
-        // 创建共享状态
-        let state = AppState {
-            app_name: String::from("Axum App"),
-            db_pool: pool,  // 传入数据库连接池
-        };
-
-        let app = app(state);
-
-        // 因为router本身就是一个Service对象，所以可以直接像其他Service对象那样调用, 这里使用的是ServiceExt提供的oneshot方法
-        let response = app
-            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        // 检查状态码
-        assert_eq!(response.status(), StatusCode::OK);
-
-        // 检查响应内容
-        // let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        // assert_eq!(&body[..], b"Hello, World!");
-    }
-
-    #[tokio::test]
-    async fn json() {
-        dotenv().ok(); // 加载 .env 文件中的环境变量
-        // 创建数据库连接池
-        let pool = establish_connection().await;
-        // 创建共享状态
-        let state = AppState {
-            app_name: String::from("My Axum App"),
-            db_pool: pool,  // 传入数据库连接池
-        };
-        let app = app(state);
-
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .method(http::Method::POST)
-                    .uri("/demo/handle_json")
-                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-                    .body(Body::from(
-                        serde_json::to_vec(&json!({ "ids": [1, 2, 3, 4] })).unwrap(),
-                    ))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = axum::body::to_bytes(response.into_body(), 1000).await.unwrap();
-        let body: Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(body, json!({ "data": [1, 2, 3, 4] }));
-    }
+	info!("🚦 Shutdown signal received, starting graceful shutdown...");
 }

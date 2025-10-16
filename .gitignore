@@ -1,4 +1,23 @@
-target/
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
 Cargo.lock
+
+# Environment
+.env
+.env.local
+
+# IDE
 .idea/
-data.db
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
