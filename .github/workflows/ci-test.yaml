@@ -69,12 +69,6 @@ jobs:
           }
           echo "PostgreSQL is ready and accepting connections!"
 
-      - name: Verify Redis connection
-        run: |
-          echo "Testing Redis connection..."
-          redis-cli -h localhost ping
-          echo "Redis is ready!"
-
       # - name: Wait for Postgres
       #   run: |
       #     echo "Waiting for Postgres to be ready..."
