@@ -1,4 +1,4 @@
-use crate::{config::config::Config, state::AppState};
+use crate::{config::Config, state::AppState};
 use dotenvy::dotenv;
 use std::net::SocketAddr;
 use tokio::signal;

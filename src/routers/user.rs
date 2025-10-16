@@ -41,13 +41,15 @@ pub fn routes(state: AppState) -> Router<AppState> {
 /// - GET    /api/user/list     - 获取用户列表
 /// - DELETE /api/users/delete - 删除用户 (需要认证)
 /// - POST   /api/user/create     - 创建用户 (需要认证)
+///
+#[allow(clippy::let_and_return)]
 pub fn admin_routes(state: AppState) -> Router<AppState> {
 	// 管理员路由（需要认证 + 管理员权限）
 	let admin_routes = Router::new()
 		.route("/list", get(list_users))
 		.route("/create_user", post(create_user))
 		.route("/update", get(list_users))
-		.route("/delte", get(list_users))
+		.route("/delete", get(list_users))
 		.layer(middleware::from_fn_with_state(
 			state.clone(),
 			auth::admin_middleware,

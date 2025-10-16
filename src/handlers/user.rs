@@ -1,35 +1,43 @@
-use axum::{Json, extract::{Path, State}, http::StatusCode};
+use crate::{
+	error::{ApiError, Result},
+	models::user::User,
+	schemas::{
+		common_schemas::IdsRequest,
+		user_schemas::{CreateUserRequest, UpdateUserRequest, UserResponse},
+	},
+	services::user_service::UserService,
+	state::AppState,
+};
+use axum::{
+	extract::{Path, State},
+	http::StatusCode,
+	Json,
+};
 use utoipa::OpenApi;
 use uuid::Uuid;
-use crate::{
-	error::{ApiError, Result}, 
-    models::user::User, schemas::{common_schemas::IdsRequest, user_schemas::{CreateUserRequest, UpdateUserRequest, UserResponse}}, 
-    services::user_service::UserService, state::AppState
-};
 
 const TAG_NAME: &str = "User API";
 
 /// 创建用户
 #[utoipa::path(
-    post, 
-    path = "/create", 
+    post,
+    path = "/create",
     tag = TAG_NAME,
     request_body=CreateUserRequest,
 responses(
     (status=201,description="创建用户",body=UserResponse),
     (status=400,description="请求参数错误",body=ApiError),
     (status=422,description="验证失败",body=ApiError),
-    (status=500,description="服务器错误",body=ApiError)
-)
+    (status=500,description="服务器错误",body=ApiError))
 )]
 pub async fn create_user(
 	State(state): State<AppState>,
 	Json(req): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
 	let user_service = UserService::new(state);
-    let user = user_service.create_user(req).await?;
-    let user_response = UserResponse::from(user);
-    Ok((StatusCode::CREATED, Json(user_response)))
+	let user = user_service.create_user(req).await?;
+	let user_response = UserResponse::from(user);
+	Ok((StatusCode::CREATED, Json(user_response)))
 }
 
 /// 删除用户
@@ -44,11 +52,13 @@ pub async fn create_user(
         (status = 500, description = "内部服务器错误", body = ApiError)
     )
 )]
-pub async fn delete_user(State(state): State<AppState>,
-Json(req): Json<IdsRequest>)->Result<StatusCode>{
-    let user_service = UserService::new(state);
-    let result = user_service.delete_user(req).await?;
-    Ok(StatusCode::NO_CONTENT)
+pub async fn delete_user(
+	State(state): State<AppState>,
+	Json(req): Json<IdsRequest>,
+) -> Result<StatusCode> {
+	let user_service = UserService::new(state);
+	user_service.delete_user(req).await?;
+	Ok(StatusCode::NO_CONTENT)
 }
 
 /// 更新用户
@@ -66,13 +76,15 @@ Json(req): Json<IdsRequest>)->Result<StatusCode>{
         (status = 500, description = "内部服务器错误", body = ApiError)
     )
 )]
-pub async fn update_user(State(state): State<AppState>,
-Path(id): Path<Uuid>,
-Json(req): Json<UpdateUserRequest>)->Result<(StatusCode,Json<UserResponse>)>{
-    let user_service = UserService::new(state);
-    let user = user_service.update_user(id,req).await?;
-    let user_response = UserResponse::from(user);
-    Ok((StatusCode::OK, Json(user_response)))
+pub async fn update_user(
+	State(state): State<AppState>,
+	Path(id): Path<Uuid>,
+	Json(req): Json<UpdateUserRequest>,
+) -> Result<(StatusCode, Json<UserResponse>)> {
+	let user_service = UserService::new(state);
+	let user = user_service.update_user(id, req).await?;
+	let user_response = UserResponse::from(user);
+	Ok((StatusCode::OK, Json(user_response)))
 }
 
 /// 获取用户列表
@@ -84,13 +96,10 @@ Json(req): Json<UpdateUserRequest>)->Result<(StatusCode,Json<UserResponse>)>{
     (status=500,description="服务器内部错误",body=ApiError))
 )]
 pub async fn list_users(State(state): State<AppState>) -> Result<Json<Vec<User>>> {
-    let user_service = UserService::new(state);
-    let user_list=user_service.list_users().await?;
-    Ok(Json(user_list))
+	let user_service = UserService::new(state);
+	let user_list = user_service.list_users().await?;
+	Ok(Json(user_list))
 }
-
-
-
 
 #[derive(OpenApi)]
 #[openapi(
@@ -98,4 +107,3 @@ pub async fn list_users(State(state): State<AppState>) -> Result<Json<Vec<User>>
     tags((name = "User API", description = "User management"))
 )]
 pub struct UserApiDoc;
-

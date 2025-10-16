@@ -72,7 +72,7 @@ impl IntoResponse for AppError {
 				(
 					StatusCode::INTERNAL_SERVER_ERROR,
 					"INTERNAL_ERROR",
-					"A internal error occured".to_string(),
+					"A internal error occurred".to_string(),
 				)
 			}
 		};

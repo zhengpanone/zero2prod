@@ -37,7 +37,7 @@ mod tests {
 	use crate::utils::encrypt::{hash_password, verify_password};
 
 	#[test]
-	fn test_password_hasing() {
+	fn test_password_hashing() {
 		let password = "test_password_123";
 		// 测试密码哈希
 		let hash = hash_password(password).unwrap();
@@ -52,6 +52,6 @@ mod tests {
 	}
 	#[test]
 	fn test_gener_uuid() {
-		println!("{}", uuid::Uuid::new_v4().to_string());
+		println!("{}", uuid::Uuid::new_v4());
 	}
 }

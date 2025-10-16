@@ -2,7 +2,7 @@ use anyhow::Error;
 use sqlx::PgPool;
 use tracing::info;
 
-use crate::{config::config::Config, db::init_db_pool};
+use crate::{config::Config, db::init_db_pool};
 /// 应用状态
 #[derive(Clone)]
 pub struct AppState {

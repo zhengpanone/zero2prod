@@ -5,7 +5,6 @@ pub mod health;
 pub mod metrics;
 pub mod user;
 
-
 // OpenAPI 文档定义
 // 合并多个 OpenApi 文档
 #[derive(OpenApi)]
@@ -13,8 +12,7 @@ pub mod user;
         nest(
             // you can nest sub apis here
             (path = "/api/user", api = user::UserApiDoc),
-             (path = "/auth", api = auth::AuthApiDoc,),
-        
+            (path = "/auth", api = auth::AuthApiDoc,),
         )
     )]
 pub struct ApiDoc;

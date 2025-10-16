@@ -20,8 +20,8 @@ pub fn generate_token(
 
 	let claims = Claims {
 		sub: user_id.to_string(),
-		exp: exp,
-		iat: iat,
+		exp,
+		iat,
 	};
 	encode(
 		&Header::default(),
@@ -80,7 +80,7 @@ mod tests {
 		let result = validate_token(&token, "wrong_secret");
 		assert!(
 			result.is_err(),
-			"Token validation should faild with wrong secret"
+			"Token validation should failed with wrong secret"
 		);
 	}
 	#[test]
