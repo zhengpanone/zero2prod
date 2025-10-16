@@ -5,6 +5,9 @@ on:
     workflows: ["CI Test"] # 必须和 ci-test.yaml 的 name 完全匹配
     types:
       - completed # 监听 CI Test 完成，无论成功或失败
+    branches:
+      - master
+      - dev
 
 permissions:
   contents: read # 允许 checkout 仓库
