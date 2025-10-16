@@ -16,6 +16,8 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: gmall
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -23,59 +25,55 @@ jobs:
           --health-retries 5
       redis:
         image: redis:7-alpine
+        ports:
+          - 6379:6379
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gmall
+          REDIS_URL: redis://redis:6379
+          JWT_SECRET: "test-secret-key"
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Install Rust
-        run: rustup toolchain install stable --component llvm-tools-preview
-
-      - name: Install sqlx-cli
-        run: |
-          cargo install sqlx-cli --no-default-features --features postgres
-
-      - uses: taiki-e/install-action@cargo-llvm-cov
-      - uses: taiki-e/install-action@nextest
-      - uses: Swatinem/rust-cache@v2
-
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools-preview
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/index
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          cache-on-failure: true
+
+      - name: Install cargo tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli, cargo-llvm-cov, cargo-nextest
 
       - name: Wait for Postgres
         run: |
-          echo "Waiting for Postgres..."
-          TIMEOUT=300
-          ELAPSED=0
-          until PGPASSWORD=postgres psql -h postgres -U postgres -d gmall -c '\q' 2>/dev/null; do
-            if [ $ELAPSED -ge $TIMEOUT ]; then
-              echo "Postgres did not become ready in 5 minutes. Exiting."
-              exit 1
+          echo "Waiting for Postgres to be ready..."
+          for i in {1..30}; do
+            if pg_isready -h postgres -p 5432 -U postgres; then
+              echo "Postgres is ready!"
+              exit 0
             fi
-            echo "Waiting for Postgres..."
+            echo "Attempt $i: Postgres is not ready yet..."
             sleep 2
-            ELAPSED=$((ELAPSED + 2))
           done
+          echo "Postgres did not become ready in time."
+          exit 1
 
-      - name: Run migrations
+      - name: Run database migrations
         run: sqlx migrate run
         env:
           DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gmall
@@ -84,15 +82,22 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check clippy
-        run: cargo clippy --all-targets --all-features --tests --benches -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Check the package for errors
         run: cargo check --all
 
-      - name: Run tests
-        run: cargo test --verbose && cargo nextest run --all-features
+      - name: Run tests with nextest
+        run: cargo nextest run --all-features --no-fail-fast
 
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gmall
-          REDIS_URL: redis://redis:6379
-          JWT_SECRET: "test-secret-key"
+      - name: Generate code coverage
+        if: github.event_name == 'pull_request'
+        run: |
+          cargo llvm-cov nextest --all-features --lcov --output-path lcov.info
+
+      - name: Upload coverage reports
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
