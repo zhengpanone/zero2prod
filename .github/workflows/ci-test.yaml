@@ -1,0 +1,93 @@
+name: CI Test
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gmall
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install Rust
+        run: rustup toolchain install stable --component llvm-tools-preview
+
+      - name: Install tools
+        run: |
+          cargo install sqlx-cli --no-default-features --features postgres
+
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: taiki-e/install-action@nextest
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/index
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Wait for Postgres
+        run: |
+          echo "Waiting for Postgres to be ready..."
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for Postgres..."
+            sleep 2
+          done
+      - name: Run migrations
+        run: sqlx migrate run
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gmall
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check clippy
+        run: cargo clippy --all-targets --all-features --tests --benches -- -D warnings
+
+      - name: Check the package for errors
+        run: cargo check --all
+
+      - name: Run tests
+        run: cargo test --verbose && cargo nextest run --all-features
+
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gmall
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: "test-secret-key"
