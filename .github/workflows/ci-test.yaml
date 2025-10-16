@@ -59,19 +59,35 @@ jobs:
         with:
           tool: sqlx-cli, cargo-llvm-cov, cargo-nextest
 
-      - name: Wait for Postgres
+      - name: Verify Postgres connection
         run: |
-          echo "Waiting for Postgres to be ready..."
-          for i in {1..30}; do
-            if pg_isready -h postgres -p 5432 -U postgres; then
-              echo "Postgres is ready!"
-              exit 0
-            fi
-            echo "Attempt $i: Postgres is not ready yet..."
-            sleep 2
-          done
-          echo "Postgres did not become ready in time."
-          exit 1
+          echo "Testing PostgreSQL connection..."
+          # 使用 psql 直接测试连接
+          PGPASSWORD=postgres psql -h localhost -U postgres -d gmall -c "SELECT version();" || {
+            echo "Direct connection failed, trying with explicit parameters..."
+            PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d gmall -c "SELECT version();"
+          }
+          echo "PostgreSQL is ready and accepting connections!"
+
+      - name: Verify Redis connection
+        run: |
+          echo "Testing Redis connection..."
+          redis-cli -h localhost ping
+          echo "Redis is ready!"
+
+      # - name: Wait for Postgres
+      #   run: |
+      #     echo "Waiting for Postgres to be ready..."
+      #     for i in {1..30}; do
+      #       if pg_isready -h postgres -p 5432 -U postgres; then
+      #         echo "Postgres is ready!"
+      #         exit 0
+      #       fi
+      #       echo "Attempt $i: Postgres is not ready yet..."
+      #       sleep 2
+      #     done
+      #     echo "Postgres did not become ready in time."
+      #     exit 1
 
       - name: Run database migrations
         run: sqlx migrate run
