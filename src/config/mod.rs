@@ -68,6 +68,14 @@ impl Config {
 			secret: std::env::var("JWT_SECRET").unwrap_or_else(|_| {
 				"your-secret-key-change-in-production".to_string()
 			}),
+			access_ttl_min: env::var("ACCESS_TOKEN_TTL_MIN")
+				.ok()
+				.and_then(|s| s.parse().ok())
+				.unwrap_or(15),
+			refresh_ttl_days: env::var("REFRESH_TOKEN_TTL_DAYS")
+				.ok()
+				.and_then(|s| s.parse().ok())
+				.unwrap_or(7),
 			expiration_hours: std::env::var("JWT_EXPIRATION_HOURS")
 				.unwrap_or_else(|_| "24".to_string())
 				.parse()
@@ -90,5 +98,35 @@ impl Config {
 			jwt,
 			app,
 		})
+	}
+}
+
+#[cfg(test)]
+mod config_tests {
+	use std::env;
+
+	use crate::config::Config;
+
+	/// 测试配置加载
+	#[test]
+	#[ignore] // 忽略此测试，因为它依赖环境变量
+	fn test_config_from_env() {
+		// 设置必需的环境变量
+		env::set_var(
+			"DATABASE_URL",
+			"postgres://user:password@localhost:5432/gmall",
+		);
+		env::set_var("PORT", "3000");
+
+		let config = Config::from_env().unwrap();
+		assert_eq!(config.server.port, 3000);
+		assert_eq!(
+			config.database.url,
+			"postgres://user:password@localhost:5432/gmall"
+		);
+
+		// 清理
+		env::remove_var("DATABASE_URL");
+		env::remove_var("PORT");
 	}
 }

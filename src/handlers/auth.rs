@@ -1,11 +1,14 @@
-use axum::{extract::State, Json};
+use std::sync::Arc;
+
+use axum::{extract::State, http::StatusCode, Json};
 use utoipa::OpenApi;
 use validator::Validate;
 
 use crate::{
-	error::{ApiError, AppError, Result},
+	errors::{ApiError, AppError, Result},
 	repositories::user_repository::UserRepository,
 	schemas::auth_schemas::{AuthResponse, LoginRequest, RegisterRequest},
+	services::auth_service::AuthService,
 	state::AppState,
 	utils::encrypt::verify_password,
 };
@@ -13,7 +16,7 @@ use crate::{
 /// 用户登录
 #[utoipa::path(
     post,
-    path = "/auth/login",
+    path = "/login",
     tag = "Auth API",
     request_body = LoginRequest,
     responses(
@@ -28,6 +31,7 @@ pub async fn login(
 	req.validate()
 		.map_err(|e| AppError::Validation(e.to_string()))?;
 	let repository = UserRepository::new(state.db.clone());
+
 	let user = repository.find_by_email(&req.email).await?.ok_or_else(|| {
 		AppError::BadRequest("Invalid email or password".to_string())
 	})?;
@@ -47,7 +51,7 @@ pub async fn login(
 /// 用户注册
 #[utoipa::path(
     post,
-    path = "/auth/register",
+    path = "/register",
     tag = "Auth API",
     request_body = RegisterRequest,
     responses(
@@ -58,8 +62,12 @@ pub async fn login(
 pub async fn register(
 	State(state): State<AppState>,
 	Json(req): Json<RegisterRequest>,
-) -> Result<Json<AuthResponse>> {
-	todo!()
+) -> Result<(StatusCode, Json<AuthResponse>)> {
+	let state_clone = Arc::new(state.clone());
+	let auth_service = AuthService::new(state_clone);
+	let response = auth_service.register(req).await?;
+
+	Ok((StatusCode::CREATED, Json(response)))
 }
 
 #[derive(OpenApi)]

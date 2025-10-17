@@ -17,15 +17,14 @@ pub struct LoginRequest {
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct RegisterRequest {
-	#[validate(email(message = "Invalid email format"))]
-	pub email: String,
-
+	// #[validate(email(message = "Invalid email format"))]
+	// pub email: String,
 	#[validate(length(
 		min = 2,
 		max = 100,
 		message = "Name must be between 2 and 100 characters"
 	))]
-	pub name: String,
+	pub username: String,
 
 	#[validate(length(
 		min = 6,
@@ -39,10 +38,44 @@ pub struct AuthResponse {
 	pub token: String,
 	pub user_id: Uuid,
 	pub email: String,
-	pub name: String,
+	pub username: String,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct LoginResponse {
 	pub token: String,
+}
+
+#[cfg(test)]
+mod validation_auth_tests {
+	use validator::Validate;
+
+	use crate::schemas::auth_schemas::{LoginRequest, RegisterRequest};
+
+	#[test]
+	fn test_login_request_validation() {
+		let mut request = LoginRequest {
+			email: "example@email.com".to_string(),
+			password: String::from("password123"),
+		};
+		assert!(request.validate().is_ok(), "LoginRequest should be valid");
+
+		request.password = String::from("passw");
+		assert!(
+			request.validate().is_err(),
+			"LoginRequest should be invalid"
+		);
+	}
+	#[test]
+	fn test_register_request_validation() {
+		let request = RegisterRequest {
+			// email: "example@email.com".to_string(),
+			username: String::from("username"),
+			password: String::from("password123"),
+		};
+		assert!(
+			request.validate().is_ok(),
+			"RegisterRequest should be valid"
+		);
+	}
 }

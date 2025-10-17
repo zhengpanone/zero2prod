@@ -5,7 +5,7 @@ use argon2::{
 	Argon2,
 };
 
-use crate::error::{AppError, Result};
+use crate::errors::{AppError, Result};
 
 pub fn hash_password(password: &str) -> Result<String> {
 	// 随机生成盐

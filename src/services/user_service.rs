@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
 use crate::{
-	error::{AppError, Result},
+	errors::{AppError, Result},
 	models::user::User,
 	repositories::user_repository::UserRepository,
 	schemas::{
@@ -9,23 +11,25 @@ use crate::{
 		user_schemas::{CreateUserRequest, UpdateUserRequest},
 	},
 	state::AppState,
+	utils::encrypt::hash_password,
 };
 
 pub struct UserService {
 	repository: UserRepository,
+	state: Arc<AppState>,
 }
 
 impl UserService {
-	pub fn new(state: AppState) -> Self {
+	pub fn new(state: Arc<AppState>) -> Self {
 		let repository = UserRepository::new(state.db.clone());
-		Self { repository }
+		Self { repository, state }
 	}
 
 	pub async fn list_users(&self) -> Result<Vec<User>> {
 		self.repository.find_all().await
 	}
 
-	pub async fn get_user(&self, id: Uuid) -> Result<User> {
+	pub async fn get_user_detail(&self, id: Uuid) -> Result<User> {
 		self.repository.find_by_id(id).await?.ok_or_else(|| {
 			AppError::NotFound(format!("User with id {} not found", id))
 		})
@@ -40,7 +44,11 @@ impl UserService {
 			)));
 		}
 
-		self.repository.create(&req.email, &req.username).await
+		let _ = self.repository.find_all().await;
+		let password_hash = hash_password(&req.password)?;
+		self.repository
+			.create(&req.email, &req.username, &password_hash)
+			.await
 	}
 
 	pub async fn delete_user(&self, ids: IdsRequest) -> Result<()> {
@@ -69,11 +77,17 @@ impl UserService {
 		id: Uuid,
 		req: UpdateUserRequest,
 	) -> Result<User> {
+		let pool = &self.repository.pool;
 		// Rust 提供 as_deref() 方法，可以把 Option<String> 转成 Option<&str>
 		let user = self
 			.repository
 			.update(id, req.email.as_deref(), req.username.as_deref())
 			.await?;
+		Ok(user)
+	}
+
+	pub async fn find_by_username(&self, username: &str) -> Result<Option<User>> {
+		let user = self.repository.find_by_username(username).await?;
 		Ok(user)
 	}
 }

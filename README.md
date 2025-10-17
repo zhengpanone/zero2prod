@@ -81,6 +81,25 @@ cargo watch -x 'run'
 cargo test -- --nocapture # --nocapture 表示不要捕获测试输出
 ```
 
+**测试类型**
+
+- 按粒度
+    - 单元测试 (Unit Test)
+    - 集成测试 (Integration Test)
+    - 端到端测试 (End-to-End Test)
+- 按功能
+    - 功能测试（Functional Test）
+    - 性能测试（Performance Test / Benchmark）
+    - 安全测试（Security Test）
+    - 回归测试（Regression Test）
+    - 压力测试（Load Test）
+    - 稳定性测试（Stability Test）
+    - 兼容性测试（Compatibility Test）
+- 按执行方式
+    - 手动执行
+    - 自动执行
+
+
 ### 5. 访问服务
 - API 服务: http://localhost:3000
 - Swagger UI: http://localhost:3000/swagger-ui
@@ -239,21 +258,79 @@ docker-compose down
 
 ```
 ├── src/
-│   ├── main.rs              # 应用入口
-│   ├── config/              # 配置管理
-│   ├── error/               # 错误处理
-│   ├── middleware/          # 中间件
-│   ├── models/              # 数据模型
-│   ├── handlers/            # HTTP 处理器
-│   ├── services/            # 业务逻辑
-│   ├── repository/          # 数据访问
-│   ├── routes/              # 路由定义
-│   └── state.rs             # 应用状态
-├── migrations/              # 数据库迁移
-├── Dockerfile              # Docker 镜像
-├── docker-compose.yml      # Docker Compose 配置
-├── Makefile                # 开发工具命令
-└── .env.example            # 环境变量模板
+│   ├── main.rs                   # 应用入口，初始化服务与路由
+│   │
+│   ├── config/                   # 配置管理模块
+│   │   ├── mod.rs                # 顶层 config 模块 配置模块入口
+│   │   ├── app.rs                # 应用配置
+│   │   ├── jwt.rs                # JWT 配置
+│   │   ├── server.rs             # 服务相关配置
+│   │   └── database.rs           # 数据库配置
+│   │
+│   ├── error/                    # 错误处理模块
+│   │   ├── mod.rs
+│   │   └── app_error.rs          # 全局错误类型与Result别名
+│   │
+│   ├── middleware/               # 中间件
+│   │   ├── mod.rs
+│   │   ├── auth.rs               # 鉴权中间件
+│   │   └── logging.rs            # 日志中间件
+│   │
+│   ├── models/                   # 数据模型（对应数据库表）
+│   │   ├── mod.rs
+│   │   ├── user.rs
+│   │   ├── post.rs
+│   │   ├── comment.rs
+│   │   └── order.rs
+│   │
+│   ├── repository/               # 数据访问层（数据库查询逻辑）
+│   │   ├── mod.rs
+│   │   ├── user_repo.rs
+│   │   ├── post_repo.rs
+│   │   ├── comment_repo.rs
+│   │   └── order_repo.rs
+│   │
+│   ├── services/                 # 业务逻辑层
+│   │   ├── mod.rs
+│   │   ├── auth_service.rs
+│   │   ├── user_service.rs
+│   │   ├── post_service.rs
+│   │   └── order_service.rs
+│   │
+│   ├── handlers/                 # HTTP 请求处理器（Controller 层）
+│   │   ├── mod.rs
+│   │   ├── auth_handler.rs
+│   │   ├── user_handler.rs
+│   │   ├── post_handler.rs
+│   │   ├── comment_handler.rs
+│   │   └── order_handler.rs
+│   │
+│   ├── routes/                   # 路由定义
+│   │   ├── mod.rs                # 聚合所有路由
+│   │   ├── auth.rs
+│   │   ├── users.rs
+│   │   ├── posts.rs
+│   │   ├── comments.rs
+│   │   └── orders.rs
+│   │
+│   ├── schema/                   # OpenAPI 规范、请求/响应 Schema 定义
+│   │   ├── mod.rs
+│   │   ├── user_schema.rs
+│   │   ├── post_schema.rs
+│   │   └── auth_schema.rs
+│   │
+│   └── state.rs                  # 应用共享状态（DB连接池、配置等）
+│
+├── migrations/                   # 数据库迁移文件（sqlx / refinery）
+│   ├── 2025XXXX_create_users.sql
+│   ├── 2025XXXX_create_posts.sql
+│   └── ...
+│
+├── Dockerfile                    # 构建镜像配置
+├── docker-compose.yml            # 本地容器编排
+├── Makefile                      # 常用命令封装（构建、测试、运行等）
+├── .env.example                  # 环境变量模板
+└── Cargo.toml                    # 项目依赖配置
 ```
 
 ## 扩展建议

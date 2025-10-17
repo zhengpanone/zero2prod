@@ -12,7 +12,7 @@ pub mod user;
         nest(
             // you can nest sub apis here
             (path = "/api/user", api = user::UserApiDoc),
-            (path = "/auth", api = auth::AuthApiDoc,),
+            (path = "/api/auth", api = auth::AuthApiDoc,),
         )
     )]
 pub struct ApiDoc;

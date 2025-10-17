@@ -15,18 +15,16 @@ pub struct CreateUserRequest {
 
 	#[validate(email(message = "Invalid email format"))]
 	pub email: String,
-
 	#[validate(length(
 		min = 8,
 		message = "Password must be at least 8 characters"
 	))]
 	pub password: String,
+	// #[validate(length(max = 500, message = "Bio cannot exceed 500 characters"))]
+	// pub bio: Option<String>,
 
-	#[validate(length(max = 500, message = "Bio cannot exceed 500 characters"))]
-	pub bio: Option<String>,
-
-	#[validate(url(message = "Image must be a valid URL"))]
-	pub image: Option<String>,
+	// #[validate(url(message = "Image must be a valid URL"))]
+	// pub image: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
@@ -47,8 +45,8 @@ pub struct UserResponse {
 	pub id: Uuid,
 	pub username: String,
 	pub email: String,
-	pub bio: Option<String>,
-	pub image: Option<String>,
+	// pub bio: Option<String>,
+	// pub image: Option<String>,
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
 }
@@ -59,10 +57,32 @@ impl From<crate::models::user::User> for UserResponse {
 			id: user.id,
 			username: user.username,
 			email: user.email,
-			bio: Some(user.bio),
-			image: Some(user.image),
+			// bio: Some(user.bio),
+			// image: Some(user.image),
 			created_at: user.created_at,
 			updated_at: user.updated_at,
 		}
+	}
+}
+
+#[cfg(test)]
+mod validation_user_tests {
+	use validator::Validate;
+
+	use crate::schemas::user_schemas::CreateUserRequest;
+
+	#[test]
+	fn test_login_request_validation() {
+		let request = CreateUserRequest {
+			username: "test".to_string(),
+			email: "example@email.com".to_string(),
+			password: "<PASSWORD>".to_string(),
+			// bio: None,
+			// image: None,
+		};
+		assert!(
+			request.validate().is_ok(),
+			"CreateUserRequest should be valid"
+		);
 	}
 }

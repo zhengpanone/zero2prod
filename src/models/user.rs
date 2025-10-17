@@ -14,11 +14,27 @@ pub struct User {
 	pub id: Uuid,
 	pub username: String,
 	pub email: String,
-	pub role: String,
+	// pub role: String,
 	#[serde(skip_serializing)]
 	pub password_hash: String,
-	pub bio: String,
-	pub image: String,
+	// pub bio: String,
+	// pub image: String,
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
+}
+
+#[derive(FromRow, Debug, Clone)]
+pub struct EmailVerification {
+	pub user_id: Uuid,
+	pub token: Uuid,
+	pub expires_at: DateTime<Utc>,
+	pub created_at: DateTime<Utc>,
+}
+
+#[derive(FromRow, Debug, Clone)]
+pub struct PasswordReset {
+	pub user_id: Uuid,
+	pub token: Uuid,
+	pub expires_at: DateTime<Utc>,
+	pub created_at: DateTime<Utc>,
 }

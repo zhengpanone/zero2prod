@@ -87,3 +87,60 @@ impl IntoResponse for AppError {
 }
 
 pub type Result<T> = std::result::Result<T, AppError>;
+
+fn validate_input(input: &str) -> Result<()> {
+	if input.is_empty() {
+		return Err(AppError::BadRequest("输入不能为空".to_string()));
+	}
+	Ok(())
+}
+
+#[cfg(test)]
+mod error_tests {
+
+	use crate::errors::{AppError, Result};
+
+	// 测试错误类型转换
+	#[test]
+	fn test_error_convert() {
+		let sqlx_error = sqlx::Error::RowNotFound;
+		let app_error = AppError::Database(sqlx_error);
+		match app_error {
+			AppError::Database(_) => (),
+			_ => panic!("应该转换为 Database错误"),
+		}
+	}
+
+	/// 测试错误消息
+	#[test]
+	fn test_error_message() {
+		let errors = vec![
+			(AppError::NotFound("User".to_string()), "Not found: User"),
+			(
+				AppError::BadRequest("Invalid input".to_string()),
+				"Bad request: Invalid input",
+			),
+			(
+				AppError::Validation("Username Validation error".to_string()),
+				"Validation error: Username Validation error",
+			),
+		];
+
+		for (error, expect_msg) in errors {
+			assert_eq!(error.to_string(), expect_msg);
+		}
+	}
+	/// 测试Result类型别名
+	#[test]
+	fn test_rsult_type() {
+		fn returns_result() -> Result<i32> {
+			Ok(42)
+		}
+
+		fn returns_error() -> Result<i32> {
+			Err(AppError::NotFound("item".to_string()))
+		}
+		assert!(returns_result().is_ok());
+		assert!(returns_error().is_err());
+	}
+}

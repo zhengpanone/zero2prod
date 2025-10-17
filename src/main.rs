@@ -1,4 +1,4 @@
-use crate::{config::Config, state::AppState};
+use crate::{config::Config, middleware::rate_limiter, state::AppState};
 use dotenvy::dotenv;
 use std::net::SocketAddr;
 use tokio::signal;
@@ -6,7 +6,7 @@ use tracing::{info, warn};
 use tracing_subscriber::FmtSubscriber;
 mod config;
 mod db;
-mod error;
+mod errors;
 mod handlers;
 mod middleware;
 mod models;
@@ -36,8 +36,11 @@ async fn main() -> anyhow::Result<()> {
 	// 创建应用状态
 	let state = AppState::new(config.clone()).await?;
 
+	// 创建限流器
+	let rate_limiter = rate_limiter::create_rate_limiter(100);
+
 	// 构建路由
-	let app = routers::create_router(state);
+	let app = routers::create_router(state, rate_limiter);
 
 	let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 

@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use crate::{
-	error::{ApiError, Result},
+	errors::{ApiError, Result},
 	models::user::User,
 	schemas::{
 		common_schemas::IdsRequest,
@@ -34,8 +36,13 @@ pub async fn create_user(
 	State(state): State<AppState>,
 	Json(req): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
-	let user_service = UserService::new(state);
+	let state_clone = Arc::new(state.clone());
+	let user_service = UserService::new(state_clone);
+
+	user_service.get_user_detail(Uuid::new_v4()).await?;
+
 	let user = user_service.create_user(req).await?;
+
 	let user_response = UserResponse::from(user);
 	Ok((StatusCode::CREATED, Json(user_response)))
 }
@@ -56,8 +63,10 @@ pub async fn delete_user(
 	State(state): State<AppState>,
 	Json(req): Json<IdsRequest>,
 ) -> Result<StatusCode> {
-	let user_service = UserService::new(state);
+	let state_clone = Arc::new(state.clone());
+	let user_service = UserService::new(state_clone);
 	user_service.delete_user(req).await?;
+
 	Ok(StatusCode::NO_CONTENT)
 }
 
@@ -81,7 +90,8 @@ pub async fn update_user(
 	Path(id): Path<Uuid>,
 	Json(req): Json<UpdateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
-	let user_service = UserService::new(state);
+	let state_clone = Arc::new(state.clone());
+	let user_service = UserService::new(state_clone);
 	let user = user_service.update_user(id, req).await?;
 	let user_response = UserResponse::from(user);
 	Ok((StatusCode::OK, Json(user_response)))
@@ -96,7 +106,8 @@ pub async fn update_user(
     (status=500,description="服务器内部错误",body=ApiError))
 )]
 pub async fn list_users(State(state): State<AppState>) -> Result<Json<Vec<User>>> {
-	let user_service = UserService::new(state);
+	let state_clone = Arc::new(state.clone());
+	let user_service = UserService::new(state_clone);
 	let user_list = user_service.list_users().await?;
 	Ok(Json(user_list))
 }

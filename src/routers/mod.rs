@@ -1,5 +1,9 @@
-use crate::{handlers::ApiDoc, state::AppState};
-use axum::Router;
+use crate::{
+	handlers::ApiDoc,
+	middleware::{self as app_middleware, rate_limiter, request_id},
+	state::AppState,
+};
+use axum::{middleware, Router};
 use tower_http::{
 	compression::CompressionLayer,
 	cors::CorsLayer,
@@ -48,7 +52,10 @@ pub fn admin_routes(state: &AppState) -> Router<AppState> {
 }
 
 /// 创建主路由
-pub fn create_router(state: AppState) -> Router {
+pub fn create_router(
+	state: AppState,
+	rate_limiter: rate_limiter::SharedRateLimiter,
+) -> Router {
 	// 生成 OpenAPI 文档实例
 	let api = ApiDoc::openapi();
 
@@ -73,6 +80,11 @@ pub fn create_router(state: AppState) -> Router {
 				.make_span_with(DefaultMakeSpan::new().level(Level::INFO))
 				.on_response(DefaultOnResponse::new().level(Level::INFO)),
 		)
+		.layer(request_id::RequestIdLayer)
+		.layer(middleware::from_fn(move |req, next| {
+			let limiter = rate_limiter.clone();
+			app_middleware::rate_limiter::rate_limit_middleware(limiter, req, next)
+		}))
 		.layer(CompressionLayer::new())
 		.layer(CorsLayer::permissive())
 		.with_state(state) // 最终注入原始 state

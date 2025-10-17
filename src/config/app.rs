@@ -30,3 +30,34 @@ impl FromStr for Environment {
 		}
 	}
 }
+#[cfg(test)]
+mod config_tests {
+	use crate::config::app::Environment;
+
+	/// 测试环境类型解析
+	#[test]
+	fn test_environment_parsing() {
+		use std::str::FromStr;
+		assert_eq!(
+			Environment::from_str("development").unwrap(),
+			Environment::Development
+		);
+		assert_eq!(
+			Environment::from_str("dev").unwrap(),
+			Environment::Development
+		);
+
+		assert_eq!(
+			Environment::from_str("staging").unwrap(),
+			Environment::Staging
+		);
+
+		assert_eq!(
+			Environment::from_str("production").unwrap(),
+			Environment::Production
+		);
+
+		// 无效的环境应该返回错误
+		assert!(Environment::from_str("invalid").is_err());
+	}
+}
