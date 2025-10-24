@@ -55,12 +55,12 @@ utoipa-scalar = { version = "0.3.0", features = ["axum"] }
 
 # Database
 sqlx = { version = "0.8.6", features = [
-    "runtime-tokio-rustls",
-    "postgres",
-    "macros",
+    "runtime-tokio-rustls", # Tokio异步运行时
+    "postgres",             # PostgreSQL数据库支持
+    "macros",               # 编译时SQL验证
     "migrate",
-    "uuid",
-    "chrono",
+    "uuid",                 # UUID类型支持
+    "chrono",               # 日期时间支持
 ] }
 # migrate 特性是必须启用的，否则 sqlx::migrate!() 宏会被编译为空。
 # sqlx 必须启用 uuid + chrono，否则不会自动实现 FromRow

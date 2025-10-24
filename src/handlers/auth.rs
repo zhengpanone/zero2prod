@@ -36,7 +36,8 @@ pub async fn login(
 		AppError::BadRequest("Invalid email or password".to_string())
 	})?;
 
-	let is_valid = verify_password(&req.password, &user.password_hash)?;
+	let is_valid =
+		verify_password(&req.password, user.password_hash.as_deref().unwrap_or(""))?;
 	if is_valid {
 		return Err(AppError::BadRequest(
 			"Invalid email or password".to_string(),

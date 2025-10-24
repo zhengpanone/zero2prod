@@ -1,4 +1,4 @@
-use crate::{errors::Result, models::user::User};
+use crate::{errors::Result, models::sys_user::SysUser};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -12,9 +12,9 @@ impl UserRepository {
 		Self { pool }
 	}
 
-	pub async fn find_all(&self) -> Result<Vec<User>> {
-		let users: Vec<User> = sqlx::query_as::<_, User>(
-            "SELECT id, email, username,password_hash, created_at, updated_at FROM sys_user ORDER BY created_at DESC"
+	pub async fn find_all(&self) -> Result<Vec<SysUser>> {
+		let users: Vec<SysUser> = sqlx::query_as::<_, SysUser>(
+            "SELECT id, email, username, password_hash, status, created_at, updated_at FROM sys_user ORDER BY created_at DESC"
         )
         .fetch_all(&self.pool)
         .await?;
@@ -22,9 +22,9 @@ impl UserRepository {
 		Ok(users)
 	}
 
-	pub async fn find_by_id(&self, id: Uuid) -> Result<Option<User>> {
-		let user = sqlx::query_as::<_, User>(
-            "SELECT id, email, username,password_hash, created_at, updated_at FROM sys_user WHERE id = $1"
+	pub async fn find_by_id(&self, id: Uuid) -> Result<Option<SysUser>> {
+		let user = sqlx::query_as::<_, SysUser>(
+            "SELECT id, email, username, password_hash, status, created_at, updated_at FROM sys_user WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -33,35 +33,37 @@ impl UserRepository {
 		Ok(user)
 	}
 
-	pub async fn find_by_email(&self, email: &str) -> Result<Option<User>> {
-		let user = sqlx::query_as::<_,User>("SELECT id, email, username,password_hash, created_at, updated_at FROM sys_user WHERE email = $1").bind(email)
+	pub async fn find_by_email(&self, email: &str) -> Result<Option<SysUser>> {
+		let user = sqlx::query_as::<_,SysUser>("SELECT id, email, username,password_hash, status, created_at, updated_at FROM sys_user WHERE email = $1").bind(email)
 		.fetch_optional(&self.pool).await?;
 		Ok(user)
 	}
 
-	pub async fn find_by_username(&self, username: &str) -> Result<Option<User>> {
-		let user = sqlx::query_as::<_,User>("SELECT id, email, username,password_hash, created_at, updated_at FROM sys_user WHERE email = $1").bind(username)
+	pub async fn find_by_username(&self, username: &str) -> Result<Option<SysUser>> {
+		let user = sqlx::query_as::<_,SysUser>("SELECT id, email, username,password_hash, status, created_at, updated_at FROM sys_user WHERE email = $1").bind(username)
 		.fetch_optional(&self.pool).await?;
 		Ok(user)
 	}
 
 	pub async fn create(
 		&self,
-
 		email: &str,
 		username: &str,
 		password_hash: &str,
-	) -> Result<User> {
+	) -> Result<SysUser> {
+		let mut tx = self.pool.begin().await?;
+
 		let query =
 			"INSERT INTO sys_user (email, username, password_hash) VALUES ($1, $2, $3)
-				 RETURNING id, email, username, password_hash, created_at, updated_at";
+				 RETURNING id, email, username, password_hash, status, created_id,created_by, created_at, updated_id, updated_by, updated_at";
 
-		let user = sqlx::query_as::<_, User>(query)
+		let user = sqlx::query_as::<_, SysUser>(query)
 			.bind(email)
 			.bind(username)
 			.bind(password_hash)
-			.fetch_one(&self.pool)
+			.fetch_one(&mut *tx)
 			.await?;
+		tx.commit().await?;
 		Ok(user)
 	}
 
@@ -74,7 +76,7 @@ impl UserRepository {
 		id: Uuid,
 		email: Option<&str>,
 		username: Option<&str>,
-	) -> Result<User> {
+	) -> Result<SysUser> {
 		let query = r#"
             UPDATE sys_user
             SET
@@ -84,7 +86,7 @@ impl UserRepository {
             WHERE id = $1
             RETURNING id, email, username, password_hash, created_at, updated_at
             "#;
-		let user = sqlx::query_as::<_, User>(query)
+		let user = sqlx::query_as::<_, SysUser>(query)
 			.bind(id)
 			.bind(email)
 			.bind(username)

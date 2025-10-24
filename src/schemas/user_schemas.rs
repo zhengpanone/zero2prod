@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use crate::enums::common::UserStatus;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -47,20 +47,22 @@ pub struct UserResponse {
 	pub email: String,
 	// pub bio: Option<String>,
 	// pub image: Option<String>,
-	pub created_at: DateTime<Utc>,
-	pub updated_at: DateTime<Utc>,
+	pub status: UserStatus,
+	pub created_at: String,
+	pub updated_at: String,
 }
 
-impl From<crate::models::user::User> for UserResponse {
-	fn from(user: crate::models::user::User) -> Self {
+impl From<crate::models::sys_user::SysUser> for UserResponse {
+	fn from(user: crate::models::sys_user::SysUser) -> Self {
 		Self {
 			id: user.id,
 			username: user.username,
 			email: user.email,
+			status: user.status,
 			// bio: Some(user.bio),
 			// image: Some(user.image),
-			created_at: user.created_at,
-			updated_at: user.updated_at,
+			created_at: user.created_at.map(|t| t.to_rfc3339()).unwrap_or_default(),
+			updated_at: user.updated_at.map(|t| t.to_rfc3339()).unwrap_or_default(),
 		}
 	}
 }

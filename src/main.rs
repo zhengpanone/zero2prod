@@ -6,6 +6,7 @@ use tracing::{info, warn};
 use tracing_subscriber::FmtSubscriber;
 mod config;
 mod db;
+mod enums;
 mod errors;
 mod handlers;
 mod middleware;

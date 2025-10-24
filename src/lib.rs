@@ -1,5 +1,6 @@
 pub mod config;
 pub mod db;
+pub mod enums;
 pub mod errors;
 pub mod handlers;
 pub mod middleware;

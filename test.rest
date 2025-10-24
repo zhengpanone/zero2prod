@@ -1,0 +1,12 @@
+### 健康检查
+GET http://localhost:3000/health HTTP/1.1
+
+### 创建用户
+POST http://localhost:3000/api/user/create HTTP/1.1
+content-type: application/json
+
+{
+  "password": "admin123",
+  "username": "Jackson",
+  "email": "jackson@example.com"
+}

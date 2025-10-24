@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
 	errors::{ApiError, Result},
-	models::user::User,
+	models::sys_user::SysUser,
 	schemas::{
 		common_schemas::IdsRequest,
 		user_schemas::{CreateUserRequest, UpdateUserRequest, UserResponse},
@@ -36,10 +36,8 @@ pub async fn create_user(
 	State(state): State<AppState>,
 	Json(req): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
-	let state_clone = Arc::new(state.clone());
+	let state_clone: Arc<AppState> = Arc::new(state.clone());
 	let user_service = UserService::new(state_clone);
-
-	user_service.get_user_detail(Uuid::new_v4()).await?;
 
 	let user = user_service.create_user(req).await?;
 
@@ -102,10 +100,12 @@ pub async fn update_user(
     get,
     path="/list",
     tag=TAG_NAME,
-    responses((status=200,description="成功获取用户列表",body=[User]),
+    responses((status=200,description="成功获取用户列表",body=[SysUser]),
     (status=500,description="服务器内部错误",body=ApiError))
 )]
-pub async fn list_users(State(state): State<AppState>) -> Result<Json<Vec<User>>> {
+pub async fn list_users(
+	State(state): State<AppState>,
+) -> Result<Json<Vec<SysUser>>> {
 	let state_clone = Arc::new(state.clone());
 	let user_service = UserService::new(state_clone);
 	let user_list = user_service.list_users().await?;
