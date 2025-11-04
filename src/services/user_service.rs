@@ -88,4 +88,9 @@ impl UserService {
 		let user = self.repository.find_by_username(username).await?;
 		Ok(user)
 	}
+
+	pub async fn find_by_email(&self, email: &str) -> Result<Option<SysUser>> {
+		let user = self.repository.find_by_email(email).await?;
+		Ok(user)
+	}
 }

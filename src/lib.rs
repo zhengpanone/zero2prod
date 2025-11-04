@@ -3,6 +3,7 @@ pub mod db;
 pub mod enums;
 pub mod errors;
 pub mod handlers;
+pub mod init;
 pub mod middleware;
 pub mod models;
 pub mod repositories;

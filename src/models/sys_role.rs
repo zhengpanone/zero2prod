@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
-pub struct Role {
+pub struct SysRole {
 	pub id: Uuid,
 	pub name: String,
 	pub description: String,

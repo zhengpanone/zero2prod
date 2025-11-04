@@ -21,6 +21,36 @@ impl UserRepository {
 
 		Ok(users)
 	}
+	/// 分页查询用户列表
+	pub async fn find_page(
+		&self,
+		page_num: i64,
+		page_size: i64,
+	) -> Result<Vec<SysUser>> {
+		let offset = (page_num - 1) * page_size;
+		let users: Vec<SysUser> = sqlx::query_as::<_, SysUser>(
+			r#"
+			SELECT id, email, username, password_hash, status, created_at, updated_at
+			FROM sys_user ORDER BY created_at DESC
+			LIMIT $1 OFFSET $2
+			"#,
+		)
+		.bind(page_size)
+		.bind(offset)
+		.fetch_all(&self.pool)
+		.await?;
+
+		Ok(users)
+	}
+
+	/// 查询用户总数
+	pub async fn count(&self) -> Result<i64> {
+		let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sys_user")
+			.fetch_one(&self.pool)
+			.await?;
+
+		Ok(count)
+	}
 
 	pub async fn find_by_id(&self, id: Uuid) -> Result<Option<SysUser>> {
 		let user = sqlx::query_as::<_, SysUser>(

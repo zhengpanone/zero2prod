@@ -1,13 +1,62 @@
+use crate::config::jwt::JwtConfig;
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+	decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation,
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct Claims {
-	pub sub: String, // user_id
-	pub exp: usize,  // expiration
-	pub iat: usize,  // issued_at
+	pub sub: String,         // user_id
+	pub exp: usize,          // expiration
+	pub iat: usize,          // issued_at
+	pub jti: Option<String>, // only for refresh token
+}
+
+pub fn sign_access(user_id: Uuid, jwt_config: &JwtConfig) -> anyhow::Result<String> {
+	let iat = Utc::now();
+	let exp = iat + Duration::minutes(jwt_config.access_ttl_min);
+	let claims = Claims {
+		sub: user_id.to_string(),
+		iat: iat.timestamp() as usize,
+		exp: exp.timestamp() as usize,
+		jti: None,
+	};
+	Ok(encode(
+		&Header::new(Algorithm::HS256),
+		&claims,
+		&EncodingKey::from_secret(jwt_config.secret.as_bytes()),
+	)?)
+}
+
+pub fn sign_refresh(
+	user_id: Uuid,
+	jti: Uuid,
+	jwt_config: &JwtConfig,
+) -> anyhow::Result<String> {
+	let iat = Utc::now();
+	let exp = iat + Duration::days(jwt_config.refresh_ttl_days);
+	let claims = Claims {
+		sub: user_id.to_string(),
+		iat: iat.timestamp() as usize,
+		exp: exp.timestamp() as usize,
+		jti: Some(jti.to_string()),
+	};
+	Ok(encode(
+		&Header::new(Algorithm::HS256),
+		&claims,
+		&EncodingKey::from_secret(jwt_config.secret.as_bytes()),
+	)?)
+}
+
+pub fn verify(token: &str, jwt_config: &JwtConfig) -> anyhow::Result<Claims> {
+	let data = decode::<Claims>(
+		token,
+		&DecodingKey::from_secret(jwt_config.secret.as_bytes()),
+		&Validation::new(Algorithm::HS256),
+	)?;
+	Ok(data.claims)
 }
 
 pub fn generate_token(
@@ -22,6 +71,7 @@ pub fn generate_token(
 		sub: user_id.to_string(),
 		exp,
 		iat,
+		jti: None,
 	};
 	encode(
 		&Header::default(),
@@ -49,6 +99,14 @@ mod tests {
 	use uuid::Uuid;
 
 	const SECRET: &str = "my_secret_key";
+
+	// fn test_generate_token() {
+	// 			let jwt = JwtKeys::new(
+	// 		&config.jwt.secret,
+	// 		config.jwt.access_ttl_min,
+	// 		config.jwt.refresh_ttl_days,
+	// 	);
+	// }
 
 	#[test]
 	fn test_generate_and_validate_token() {
@@ -92,6 +150,7 @@ mod tests {
 			sub: user_id.to_string(),
 			exp: (Utc::now() - Duration::hours(1)).timestamp() as usize, // 已过期
 			iat: Utc::now().timestamp() as usize,
+			jti: None,
 		};
 		let token = encode(
 			&Header::default(),

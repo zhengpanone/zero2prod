@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, Json};
-use utoipa::OpenApi;
-use validator::Validate;
-
 use crate::{
-	errors::{ApiError, AppError, Result},
-	repositories::user_repository::UserRepository,
-	schemas::auth_schemas::{AuthResponse, LoginRequest, RegisterRequest},
+	errors::{ApiError, Result},
+	schemas::auth_schemas::{
+		AuthResponse, LoginRequest, LoginResponse, RefreshRequest, RegisterRequest,
+	},
 	services::auth_service::AuthService,
 	state::AppState,
-	utils::encrypt::verify_password,
+	utils::response::ApiResponse,
 };
+use axum::{extract::State, http::StatusCode, Json};
+use utoipa::OpenApi;
 
 /// 用户登录
 #[utoipa::path(
@@ -20,33 +19,17 @@ use crate::{
     tag = "Auth API",
     request_body = LoginRequest,
     responses(
-        (status = 200, description = "登录成功", body = AuthResponse),
+        (status = 200, description = "登录成功", body = ApiResponse<LoginResponse>),
         (status = 401, description = "认证失败", body = ApiError),
     )
 )]
 pub async fn login(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	Json(req): Json<LoginRequest>,
-) -> Result<Json<AuthResponse>> {
-	req.validate()
-		.map_err(|e| AppError::Validation(e.to_string()))?;
-	let repository = UserRepository::new(state.db.clone());
-
-	let user = repository.find_by_email(&req.email).await?.ok_or_else(|| {
-		AppError::BadRequest("Invalid email or password".to_string())
-	})?;
-
-	let is_valid =
-		verify_password(&req.password, user.password_hash.as_deref().unwrap_or(""))?;
-	if is_valid {
-		return Err(AppError::BadRequest(
-			"Invalid email or password".to_string(),
-		));
-	}
-
-	// let token =
-
-	todo!()
+) -> Result<(StatusCode, Json<ApiResponse<LoginResponse>>)> {
+	let auth_service = AuthService::new(state.clone());
+	let data = auth_service.login(req).await?;
+	Ok(ApiResponse::ok(data))
 }
 
 /// 用户注册
@@ -61,14 +44,33 @@ pub async fn login(
     )
 )]
 pub async fn register(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	Json(req): Json<RegisterRequest>,
-) -> Result<(StatusCode, Json<AuthResponse>)> {
-	let state_clone = Arc::new(state.clone());
-	let auth_service = AuthService::new(state_clone);
-	let response = auth_service.register(req).await?;
+) -> Result<(StatusCode, Json<ApiResponse<AuthResponse>>)> {
+	let auth_service = AuthService::new(state.clone());
+	let data = auth_service.register(req).await?;
 
-	Ok((StatusCode::CREATED, Json(response)))
+	Ok(ApiResponse::created(data))
+}
+
+/// 用户退出
+#[utoipa::path(
+    post,
+    path = "/logout",
+    tag = "Auth API",
+    request_body = RefreshRequest,
+    responses(
+        (status = 201, description = "注销成功", body = AuthResponse),
+        (status = 400, description = "请求参数错误", body = ApiError),
+    )
+)]
+pub async fn logout(
+	State(state): State<Arc<AppState>>,
+	Json(req): Json<RefreshRequest>,
+) -> Result<(StatusCode, Json<ApiResponse<()>>)> {
+	let auth_service = AuthService::new(state.clone());
+	let data = auth_service.logout(req).await?;
+	Ok(ApiResponse::message(data))
 }
 
 #[derive(OpenApi)]

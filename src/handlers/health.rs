@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -19,7 +21,9 @@ pub struct HealthResponse {
         (status = 503, description = "服务不健康", body = HealthResponse)
     )
 )]
-pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse> {
+pub async fn health_check(
+	State(state): State<Arc<AppState>>,
+) -> Json<HealthResponse> {
 	let db_status = match sqlx::query("SELECT 1").fetch_one(&state.db).await {
 		Ok(_) => "healthy".to_string(),
 		Err(_) => "unhealthy".to_string(),

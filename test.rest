@@ -6,7 +6,10 @@ POST http://localhost:3000/api/user/create HTTP/1.1
 content-type: application/json
 
 {
-  "password": "admin123",
-  "username": "Jackson",
-  "email": "jackson@example.com"
+  "password": "admin124",
+  "username": "Alice",
+  "email": "Alice@example.com"
 }
+
+### 查看用户列表
+GET http://localhost:3000/api/user/list HTTP/1.1

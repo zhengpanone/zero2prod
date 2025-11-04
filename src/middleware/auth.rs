@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
 	extract::{Request, State},
 	middleware::Next,
@@ -7,7 +9,7 @@ use axum::{
 use crate::{errors::AppError, state::AppState};
 
 pub async fn auth_middleware(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	mut _req: Request,
 	next: Next,
 ) -> Result<Response, AppError> {
@@ -16,7 +18,7 @@ pub async fn auth_middleware(
 }
 
 pub async fn admin_middleware(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	mut _req: Request,
 	next: Next,
 ) -> Result<Response, AppError> {

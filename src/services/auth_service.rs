@@ -1,17 +1,24 @@
 use std::sync::Arc;
 
-use sqlx::{Executor, Postgres};
+use chrono::{Duration, Utc};
+use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
 	errors::{AppError, Result},
 	schemas::{
-		auth_schemas::{AuthResponse, RegisterRequest},
+		auth_schemas::{
+			AuthResponse, LoginRequest, LoginResponse, RefreshRequest,
+			RegisterRequest,
+		},
 		user_schemas::CreateUserRequest,
 	},
 	services::user_service::UserService,
 	state::AppState,
-	utils::{encrypt::hash_password, jwt::generate_token},
+	utils::{
+		encrypt::{hash_password, verify_password},
+		jwt::{generate_token, sign_access, sign_refresh, verify},
+	},
 };
 
 pub struct AuthService {
@@ -27,10 +34,54 @@ impl AuthService {
 			state,
 		}
 	}
-	pub async fn login<'e, E>(&self, executor: E)
-	where
-		E: Executor<'e, Database = Postgres>,
-	{
+	pub async fn login(&self, login_request: LoginRequest) -> Result<LoginResponse> {
+		login_request
+			.validate()
+			.map_err(|e| AppError::Validation(e.to_string()))?;
+
+		let user = self
+			.user_service
+			.find_by_email(&login_request.email)
+			.await?
+			.ok_or_else(|| {
+				AppError::BadRequest("Invalid email or password".to_string())
+			})?;
+		// TODO 校验邮箱
+
+		let is_valid = verify_password(
+			&login_request.password,
+			user.password_hash.as_deref().unwrap_or(""),
+		)?;
+		if !is_valid {
+			return Err(AppError::BadRequest(
+				"Invalid email or password".to_string(),
+			));
+		}
+		let jti = Uuid::new_v4();
+		let access = sign_access(user.id, &self.state.config.jwt)
+			.map_err(AppError::Internal)?;
+
+		let refresh = sign_refresh(user.id, jti, &self.state.config.jwt)
+			.map_err(AppError::Internal)?;
+
+		sqlx::query!(
+		"INSERT INTO refresh_tokens (jti, user_id, expires_at) VALUES ($1,$2,$3)",
+		jti,
+		user.id,
+		Utc::now() + Duration::days(self.state.config.jwt.refresh_ttl_days)
+	)
+		.execute(&self.state.db)
+		.await
+		.map_err(AppError::Database)?;
+
+		let login_response = LoginResponse {
+			user_id: user.id,
+			email: user.email,
+			username: user.username,
+			access_token: access,
+			refresh_token: refresh,
+		};
+		Ok(login_response)
 	}
 
 	pub async fn register(&self, register: RegisterRequest) -> Result<AuthResponse> {
@@ -64,5 +115,21 @@ impl AuthService {
 		};
 
 		Ok(auth_response)
+	}
+
+	pub async fn logout(&self, token: RefreshRequest) -> Result<String> {
+		let claims = verify(&token.refresh_token, &self.state.config.jwt)
+			.map_err(|_| AppError::Auth("退出登录失败！".to_string()))?;
+		let jti = claims
+			.jti
+			.clone()
+			.and_then(|s| uuid::Uuid::parse_str(&s).ok())
+			.ok_or(AppError::Auth("退出登录失败！".to_string()))?;
+
+		sqlx::query!("UPDATE refresh_tokens SET revoked=true WHERE jti=$1", jti)
+			.execute(&self.state.db)
+			.await
+			.map_err(AppError::Database)?;
+		Ok("退出登录成功！".to_string())
 	}
 }

@@ -9,6 +9,7 @@ use crate::{
 	},
 	services::user_service::UserService,
 	state::AppState,
+	utils::response::{ApiResponse, Page},
 };
 use axum::{
 	extract::{Path, State},
@@ -27,25 +28,22 @@ const TAG_NAME: &str = "User API";
     tag = TAG_NAME,
     request_body=CreateUserRequest,
 responses(
-    (status=201,description="创建用户",body=UserResponse),
+    (status=201,description="创建用户",body=ApiResponse<UserResponse>),
     (status=400,description="请求参数错误",body=ApiError),
     (status=422,description="验证失败",body=ApiError),
     (status=500,description="服务器错误",body=ApiError))
 )]
 pub async fn create_user(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	Json(req): Json<CreateUserRequest>,
-) -> Result<(StatusCode, Json<UserResponse>)> {
-	let state_clone: Arc<AppState> = Arc::new(state.clone());
-	let user_service = UserService::new(state_clone);
-
+) -> Result<(StatusCode, Json<ApiResponse<UserResponse>>)> {
+	let user_service = UserService::new(state.clone());
 	let user = user_service.create_user(req).await?;
-
 	let user_response = UserResponse::from(user);
-	Ok((StatusCode::CREATED, Json(user_response)))
+	Ok(ApiResponse::created(user_response))
 }
 
-/// 删除用户
+/// 删除用户 （204 无内容）
 #[utoipa::path(
     delete,
     path = "/delete",
@@ -58,14 +56,12 @@ pub async fn create_user(
     )
 )]
 pub async fn delete_user(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	Json(req): Json<IdsRequest>,
-) -> Result<StatusCode> {
-	let state_clone = Arc::new(state.clone());
-	let user_service = UserService::new(state_clone);
+) -> Result<(StatusCode, Json<ApiResponse<String>>)> {
+	let user_service = UserService::new(state.clone());
 	user_service.delete_user(req).await?;
-
-	Ok(StatusCode::NO_CONTENT)
+	Ok(ApiResponse::message("删除用户成功"))
 }
 
 /// 更新用户
@@ -84,12 +80,11 @@ pub async fn delete_user(
     )
 )]
 pub async fn update_user(
-	State(state): State<AppState>,
+	State(state): State<Arc<AppState>>,
 	Path(id): Path<Uuid>,
 	Json(req): Json<UpdateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
-	let state_clone = Arc::new(state.clone());
-	let user_service = UserService::new(state_clone);
+	let user_service = UserService::new(state.clone());
 	let user = user_service.update_user(id, req).await?;
 	let user_response = UserResponse::from(user);
 	Ok((StatusCode::OK, Json(user_response)))
@@ -104,12 +99,19 @@ pub async fn update_user(
     (status=500,description="服务器内部错误",body=ApiError))
 )]
 pub async fn list_users(
-	State(state): State<AppState>,
-) -> Result<Json<Vec<SysUser>>> {
-	let state_clone = Arc::new(state.clone());
-	let user_service = UserService::new(state_clone);
+	State(state): State<Arc<AppState>>,
+) -> Result<(StatusCode, Json<ApiResponse<Page<UserResponse>>>)> {
+	let user_service = UserService::new(state.clone());
 	let user_list = user_service.list_users().await?;
-	Ok(Json(user_list))
+
+	let items = user_list.into_iter().map(Into::into).collect();
+	let total = 0;
+	let page_num = 1;
+	let page_size = 20;
+	let total_page = 0;
+	Ok(ApiResponse::page(
+		items, total, page_num, page_size, total_page,
+	))
 }
 
 #[derive(OpenApi)]

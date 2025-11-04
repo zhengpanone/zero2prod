@@ -1,4 +1,4 @@
-use crate::enums::common::UserStatus;
+use crate::{enums::common::UserStatus, models::sys_user::SysUser};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -52,8 +52,8 @@ pub struct UserResponse {
 	pub updated_at: String,
 }
 
-impl From<crate::models::sys_user::SysUser> for UserResponse {
-	fn from(user: crate::models::sys_user::SysUser) -> Self {
+impl From<SysUser> for UserResponse {
+	fn from(user: SysUser) -> Self {
 		Self {
 			id: user.id,
 			username: user.username,
@@ -65,6 +65,15 @@ impl From<crate::models::sys_user::SysUser> for UserResponse {
 			updated_at: user.updated_at.map(|t| t.to_rfc3339()).unwrap_or_default(),
 		}
 	}
+}
+
+/// 用户查询条件
+#[derive(Debug, Deserialize, Default)]
+pub struct UserQueryRequest {
+	pub username: Option<String>,
+	pub email: Option<String>,
+	pub phone: Option<String>,
+	pub role_id: Option<i64>,
 }
 
 #[cfg(test)]

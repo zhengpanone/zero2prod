@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
 	handlers::user::{create_user, delete_user, list_users, update_user},
 	middleware::auth,
@@ -15,7 +17,7 @@ use axum::{
 /// 路由列表:
 /// - GET    /api/user/detail - 获取用户详情 (需要认证)
 /// - PUT    /api/users/update - 更新用户 (需要认证)
-pub fn routes(state: AppState) -> Router<AppState> {
+pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	// 公开路由（无需认证）
 	let public_routes = Router::new().route("/list", get(list_users));
 	// 受保护的 API 路由（需要认证）
@@ -43,7 +45,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
 /// - POST   /api/user/create     - 创建用户 (需要认证)
 ///
 #[allow(clippy::let_and_return)]
-pub fn admin_routes(state: AppState) -> Router<AppState> {
+pub fn admin_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	// 管理员路由（需要认证 + 管理员权限）
 	let admin_routes = Router::new()
 		.route("/list", get(list_users))

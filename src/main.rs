@@ -1,6 +1,6 @@
 use crate::{config::Config, middleware::rate_limiter, state::AppState};
 use dotenvy::dotenv;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tracing::{info, warn};
 use tracing_subscriber::FmtSubscriber;
@@ -35,13 +35,13 @@ async fn main() -> anyhow::Result<()> {
 	info!("Starting server...");
 
 	// 创建应用状态
-	let state = AppState::new(config.clone()).await?;
+	let state = Arc::new(AppState::new(config.clone()).await?);
 
 	// 创建限流器
 	let rate_limiter = rate_limiter::create_rate_limiter(100);
 
-	// 构建路由
-	let app = routers::create_router(state, rate_limiter);
+	// 构建路由（Router<Arc<AppState>>）
+	let app = routers::create_router(state.clone(), rate_limiter);
 
 	let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 

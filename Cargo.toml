@@ -14,7 +14,13 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Web Framework
-axum = { version = "0.8.6", features = ["macros"] }
+axum = { version = "0.8.6", features = [
+    "tokio",
+    "http1",
+    "http2",
+    "macros",
+    "json",
+] }
 tokio = { version = "1.48.0", features = ["full"] } #异步运行时
 tower = { version = "0.5.2", features = ["util", "limit", "timeout"] }
 tower-http = { version = "0.6.6", features = [
@@ -73,3 +79,5 @@ bcrypt = "0.17.1"
 governor = "0.10.1"
 futures = "0.3.31"
 http-body-util = "0.1.3"
+metrics = "0.24.2"
+metrics-exporter-prometheus = "0.17.2"

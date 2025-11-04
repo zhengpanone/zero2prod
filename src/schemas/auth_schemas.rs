@@ -43,7 +43,16 @@ pub struct AuthResponse {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct LoginResponse {
-	pub token: String,
+	pub access_token: String,
+	pub refresh_token: String,
+	pub user_id: Uuid,
+	pub email: String,
+	pub username: String,
+}
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct RefreshRequest {
+	pub refresh_token: String,
 }
 
 #[cfg(test)]
