@@ -13,10 +13,13 @@ where
 	T: Serialize + ToSchema,
 {
 	/// 0表示成功，其他表示失败
+	/// 响应码
 	pub code: i32,
 	/// 一般为OK
+	/// 响应消息
 	pub message: String,
 	/// 正常数据或分页数据
+	/// 响应数据
 	pub data: Option<T>,
 }
 
@@ -25,7 +28,7 @@ where
 	T: Serialize + ToSchema,
 {
 	#[inline]
-	pub fn ok(data: T) -> (StatusCode, Json<Self>) {
+	pub fn ok_with_data(data: T) -> (StatusCode, Json<Self>) {
 		(
 			StatusCode::OK,
 			Json(Self {
@@ -36,9 +39,9 @@ where
 		)
 	}
 	#[inline]
-	pub fn created(data: T) -> (StatusCode, Json<Self>) {
+	pub fn ok_with_code_data(code: StatusCode, data: T) -> (StatusCode, Json<Self>) {
 		(
-			StatusCode::CREATED,
+			code,
 			Json(Self {
 				code: 0,
 				message: "Ok".into(),
@@ -48,7 +51,7 @@ where
 	}
 	/// 无数据的成功
 	#[inline]
-	pub fn empty_ok() -> (StatusCode, Json<Self>) {
+	pub fn ok() -> (StatusCode, Json<Self>) {
 		(
 			StatusCode::OK,
 			Json(Self {

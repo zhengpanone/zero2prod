@@ -59,6 +59,7 @@ impl SysRoleRepository {
 				id: row.get("id"),
 				name: row.get("name"),
 				status: row.get("status"),
+				order_num: row.get("order_num"),
 				remark: row.get("remark"),
 				description: row.get("description"),
 				created_at: row.get("created_at"),

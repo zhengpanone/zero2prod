@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-	handlers::user::{create_user, delete_user, list_users, update_user},
+	handlers::sys_user::{create_user, delete_user, list_users, update_user},
 	middleware::auth,
 	state::AppState,
 };

@@ -11,9 +11,9 @@ use crate::{
 			AuthResponse, LoginRequest, LoginResponse, RefreshRequest,
 			RegisterRequest,
 		},
-		user_schemas::CreateUserRequest,
+		sys_user_schemas::CreateUserRequest,
 	},
-	services::user_service::UserService,
+	services::sys_user_service::UserService,
 	state::AppState,
 	utils::{
 		encrypt::{hash_password, verify_password},

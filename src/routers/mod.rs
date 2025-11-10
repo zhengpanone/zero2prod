@@ -21,7 +21,12 @@ use utoipa_swagger_ui::SwaggerUi;
 
 pub mod auth;
 pub mod public;
-pub mod user;
+pub mod sys_post;
+pub mod sys_user;
+pub mod sys_dept;
+pub mod sys_dict;
+pub mod sys_menu;
+pub mod sys_role;
 
 pub fn public_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	Router::new().merge(public::routes(state))
@@ -33,7 +38,7 @@ pub fn public_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 pub fn api_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	let api_router = Router::new()
 		.nest("/auth", auth::routes())
-		.nest("/user", user::routes(state));
+		.nest("/user", sys_user::routes(state));
 	// .nest("/posts", posts::routes())
 	// .nest("/comments", comments::routes())
 	// .nest("/orders", orders::routes())
@@ -47,7 +52,7 @@ pub fn api_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 pub fn admin_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	let admin_router = Router::new()
 		.merge(public::routes(state.clone()))
-		.nest("/users", user::admin_routes(state.clone()));
+		.nest("/users", sys_user::admin_routes(state.clone()));
 
 	// 给整个 API 加上统一前缀 /api
 	Router::new().nest("/admin", admin_router)

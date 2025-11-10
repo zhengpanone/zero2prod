@@ -9,9 +9,16 @@ use tracing::error;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[schema(title = "ApiError", description = "API错误响应体")]
 pub struct ApiError {
+	/// 错误码
+	#[schema(example = "DATABASE_ERROR")]
 	pub code: String,
+	/// 错误消息
+	#[schema(example = "A database error occurred")]
 	pub message: String,
+	/// 错误详情
+	#[schema(example = "User not found")]
 	pub details: Option<serde_json::Value>,
 }
 
@@ -36,6 +43,7 @@ pub enum AppError {
 	Internal(#[from] anyhow::Error),
 }
 
+// 实现 IntoResponse 接口，将 AppError 转换为 Response
 impl IntoResponse for AppError {
 	fn into_response(self) -> Response {
 		let (status, code, message) = match self {
@@ -98,7 +106,18 @@ fn validate_input(input: &str) -> Result<()> {
 #[cfg(test)]
 mod error_tests {
 
+	use anyhow::anyhow;
+	use axum::{http::StatusCode, response::IntoResponse};
+
 	use crate::errors::{AppError, Result};
+
+	#[test]
+	fn test_anyhow_error_to_app_error_conversion() {
+		let anyhow_error = anyhow!("数据库连接失败");
+		let app_error = AppError::Internal(anyhow_error);
+		let response = app_error.into_response();
+		assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+	}
 
 	// 测试错误类型转换
 	#[test]

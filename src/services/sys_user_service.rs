@@ -5,10 +5,10 @@ use uuid::Uuid;
 use crate::{
 	errors::{AppError, Result},
 	models::sys_user::SysUser,
-	repositories::user_repository::UserRepository,
+	repositories::sys_user_repository::UserRepository,
 	schemas::{
 		common_schemas::IdsRequest,
-		user_schemas::{CreateUserRequest, UpdateUserRequest},
+		sys_user_schemas::{CreateUserRequest, UpdateUserRequest},
 	},
 	state::AppState,
 	utils::encrypt::hash_password,

@@ -35,12 +35,14 @@ serde = { version = "1.0.228", features = ["derive"] } # 序列化
 serde_json = "1.0.145"
 
 # Tracing & Logging
-tracing = "0.1.41"
+tracing = { version = "0.1.41", features = [
+    "async-await",
+] } #日志，追踪诊断信息；同时开启支持异步的特性
 tracing-subscriber = { version = "0.3.20", features = [
     "env-filter",
     "fmt",
     "json",
-] }
+] } #日志订阅器，更好地处理日志
 
 # Error Handling                                                      # 结构化日志
 anyhow = "1.0.94"

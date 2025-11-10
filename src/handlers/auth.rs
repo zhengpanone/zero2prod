@@ -29,7 +29,7 @@ pub async fn login(
 ) -> Result<(StatusCode, Json<ApiResponse<LoginResponse>>)> {
 	let auth_service = AuthService::new(state.clone());
 	let data = auth_service.login(req).await?;
-	Ok(ApiResponse::ok(data))
+	Ok(ApiResponse::ok_with_data(data))
 }
 
 /// 用户注册
@@ -50,7 +50,7 @@ pub async fn register(
 	let auth_service = AuthService::new(state.clone());
 	let data = auth_service.register(req).await?;
 
-	Ok(ApiResponse::created(data))
+	Ok(ApiResponse::ok_with_code_data(StatusCode::CREATED, data))
 }
 
 /// 用户退出

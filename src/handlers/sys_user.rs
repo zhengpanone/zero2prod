@@ -5,9 +5,9 @@ use crate::{
 	models::sys_user::SysUser,
 	schemas::{
 		common_schemas::IdsRequest,
-		user_schemas::{CreateUserRequest, UpdateUserRequest, UserResponse},
+		sys_user_schemas::{CreateUserRequest, UpdateUserRequest, UserResponse},
 	},
-	services::user_service::UserService,
+	services::sys_user_service::UserService,
 	state::AppState,
 	utils::response::{ApiResponse, Page},
 };
@@ -40,17 +40,20 @@ pub async fn create_user(
 	let user_service = UserService::new(state.clone());
 	let user = user_service.create_user(req).await?;
 	let user_response = UserResponse::from(user);
-	Ok(ApiResponse::created(user_response))
+	Ok(ApiResponse::ok_with_code_data(
+		StatusCode::CREATED,
+		user_response,
+	))
 }
 
-/// 删除用户 （204 无内容）
+/// 删除用户
 #[utoipa::path(
     delete,
     path = "/delete",
     tag = TAG_NAME,
     request_body=IdsRequest,
     responses(
-        (status = 204, description = "用户删除成功"),
+        (status = 204, description = "用户删除成功"), // 204 无内容
         (status = 404, description = "用户不存在", body = ApiError),
         (status = 500, description = "内部服务器错误", body = ApiError)
     )

@@ -2,8 +2,8 @@ use crate::{config::Config, middleware::rate_limiter, state::AppState};
 use dotenvy::dotenv;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
-use tracing::{info, warn};
-use tracing_subscriber::FmtSubscriber;
+use tracing::info;
+use zero2prod::init::logger;
 mod config;
 mod db;
 mod enums;
@@ -25,13 +25,7 @@ async fn main() -> anyhow::Result<()> {
 	// 加载配置
 	let config = Config::from_env()?;
 
-	// 初始化日志订阅器
-	let subscriber = FmtSubscriber::builder()
-		.with_max_level(tracing::Level::INFO)
-		.finish();
-	tracing::subscriber::set_global_default(subscriber)
-		.expect("setting default subscriber failed");
-
+	logger::init();
 	info!("Starting server...");
 
 	// 创建应用状态
