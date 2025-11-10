@@ -58,9 +58,15 @@ impl SysRoleRepository {
 			.map(|row| SysRole {
 				id: row.get("id"),
 				name: row.get("name"),
+				status: row.get("status"),
+				remark: row.get("remark"),
 				description: row.get("description"),
 				created_at: row.get("created_at"),
+				created_by: row.get("create_by"),
 				updated_at: row.get("updated_at"),
+				updated_by: row.get("update_by"),
+				is_deleted: row.get("is_deleted"),
+				deleted_at: row.get("deleted_at"),
 			})
 			.collect();
 
