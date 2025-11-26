@@ -4,58 +4,89 @@ repos:
     rev: v4.3.0
     hooks:
       - id: check-byte-order-marker
+        files: ^backend/.*$|^frontend/.*$
       - id: check-case-conflict
+        files: ^backend/.*$|^frontend/.*$
       - id: check-merge-conflict
+        files: ^backend/.*$|^frontend/.*$
       - id: check-symlinks
+        files: ^backend/.*$|^frontend/.*$
       - id: check-yaml
+        files: ^backend/.*\.(ya?ml)$|^frontend/.*\.(ya?ml)$
       - id: end-of-file-fixer
+        files: ^backend/.*$|^frontend/.*$
       - id: mixed-line-ending
+        files: ^backend/.*$|^frontend/.*$
       - id: trailing-whitespace
+        files: ^backend/.*$|^frontend/.*$
   - repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:
       - id: black
+
+  # Backend (Rust) — 使用本地脚本通过 cd backend && ...
   - repo: local
     hooks:
-      - id: cargo-fmt
-        name: cargo fmt
-        description: Format files with rustfmt.
-        entry: bash -c 'cargo fmt -- --check'
+      - id: cargo-fmt-backend
+        name: cargo fmt (backend check)
+        entry: bash -c 'cd backend && cargo fmt -- --check'
         language: rust
-        files: \.rs$
-        args: []
-      - id: cargo-deny
-        name: cargo deny check
-        description: Check cargo dependencies
-        entry: bash -c 'cargo deny check -d'
-        language: rust
-        files: \.rs$
-        args: []
-      - id: typos
-        name: typos
-        description: check typo
-        entry: bash -c 'typos'
-        language: rust
-        files: \.*$
+        files: ^backend/.*\.rs$
         pass_filenames: false
-      - id: cargo-check
+
+      - id: cargo-deny-backend
+        name: cargo deny (backend)
+        entry: bash -c 'cd backend && cargo deny check -d'
+        language: rust
+        files: ^backend/.*
+        pass_filenames: false
+
+      - id: cargo-check-backend
         name: cargo check
-        description: Check the package for errors.
-        entry: bash -c 'cargo check --all'
+        entry: bash -c 'cd backend && cargo check --all'
         language: rust
-        files: \.rs$
+        files: ^backend/.*\.rs$
         pass_filenames: false
-      - id: cargo-clippy
+
+      - id: cargo-clippy-backend
         name: cargo clippy
-        description: Lint rust sources
-        entry: bash -c 'cargo clippy --all-targets --all-features --tests --benches -- -D warnings'
+        entry: bash -c 'cd backend && cargo clippy --all-targets --all-features --tests --benches -- -D warnings'
         language: rust
-        files: \.rs$
+        files: ^backend/.*\.rs$
         pass_filenames: false
-      - id: cargo-test
+
+      - id: cargo-test-backend
         name: cargo test
-        description: unit test for the project
-        entry: bash -c 'cargo nextest run --all-features'
+        entry: bash -c 'cd backend && cargo nextest run --all-features'
         language: rust
-        files: \.rs$
+        files: ^backend/.*\.rs$
+        pass_filenames: false
+
+      - id: typos-backend
+        name: typos
+        entry: bash -c 'cd backend && typos'
+        language: rust
+        files: ^backend/.*
+        pass_filenames: false
+
+      # Frontend (Vue) — use npx to ensure project-local tooling
+      - id: prettier-frontend
+        name: prettier (frontend check)
+        entry: bash -c 'cd frontend && npx prettier --check "**/*.{js,ts,jsx,tsx,vue,css,scss,json,md}"'
+        language: system
+        files: ^frontend/.*\.(js|ts|jsx|tsx|vue|css|scss|json|md)$
+        pass_filenames: false
+
+      - id: eslint-frontend
+        name: eslint (frontend)
+        entry: bash -c 'cd frontend && npx eslint --ext .js,.ts,.vue .'
+        language: system
+        files: ^frontend/.*\.(js|ts|jsx|tsx|vue)$
+        pass_filenames: false
+
+      - id: typos-frontend
+        name: typos (frontend)
+        entry: bash -c 'cd frontend && typos'
+        language: system
+        files: ^frontend/.*
         pass_filenames: false

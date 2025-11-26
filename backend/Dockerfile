@@ -43,4 +43,3 @@ USER appuser
 
 EXPOSE 8080
 CMD ["./zero2prod"]
-
