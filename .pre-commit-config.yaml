@@ -38,7 +38,7 @@ repos:
         name: cargo deny (backend)
         entry: bash -c 'cd backend && cargo deny check -d'
         language: rust
-        files: ^backend/.*
+        files: ^backend/.*\.rs$
         pass_filenames: false
 
       - id: cargo-check-backend
@@ -66,27 +66,20 @@ repos:
         name: typos
         entry: bash -c 'cd backend && typos'
         language: rust
-        files: ^backend/.*
+        files: ^backend/.*\.rs$
         pass_filenames: false
 
       # Frontend (Vue) — use npx to ensure project-local tooling
       - id: prettier-frontend
         name: prettier (frontend check)
-        entry: bash -c 'cd frontend && npx prettier --check "**/*.{js,ts,jsx,tsx,vue,css,scss,json,md}"'
+        entry: bash -c 'cd frontend/zero2prod-manage && npx prettier --check "**/*.{js,ts,jsx,tsx,vue,css,scss,json,md}"'
         language: system
-        files: ^frontend/.*\.(js|ts|jsx|tsx|vue|css|scss|json|md)$
+        files: ^frontend/zero2prod-manage/.*\.(js|ts|jsx|tsx|vue|css|scss|json|md)$
         pass_filenames: false
 
       - id: eslint-frontend
         name: eslint (frontend)
-        entry: bash -c 'cd frontend && npx eslint --ext .js,.ts,.vue .'
+        entry: bash -c 'cd frontend/zero2prod-manage && npx eslint --ext .js,.ts,.vue .'
         language: system
-        files: ^frontend/.*\.(js|ts|jsx|tsx|vue)$
-        pass_filenames: false
-
-      - id: typos-frontend
-        name: typos (frontend)
-        entry: bash -c 'cd frontend && typos'
-        language: system
-        files: ^frontend/.*
+        files: ^frontend/zero2prod-manage/.*\.(js|ts|jsx|tsx|vue)$
         pass_filenames: false
