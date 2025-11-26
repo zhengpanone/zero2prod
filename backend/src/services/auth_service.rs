@@ -41,10 +41,10 @@ impl AuthService {
 
 		let user = self
 			.user_service
-			.find_by_email(&login_request.email)
+			.find_by_username(&login_request.username)
 			.await?
 			.ok_or_else(|| {
-				AppError::BadRequest("Invalid email or password".to_string())
+				AppError::BadRequest("Invalid username or password".to_string())
 			})?;
 		// TODO 校验邮箱
 

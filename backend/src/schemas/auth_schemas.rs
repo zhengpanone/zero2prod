@@ -5,8 +5,14 @@ use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct LoginRequest {
-	#[validate(email(message = "Invalid email format"))]
-	pub email: String,
+	// #[validate(email(message = "Invalid email format"))]
+	// pub email: String,
+	#[validate(length(
+		min = 2,
+		max = 100,
+		message = "Name must be between 2 and 100 characters"
+	))]
+	pub username: String,
 
 	#[validate(length(
 		min = 6,
@@ -17,8 +23,8 @@ pub struct LoginRequest {
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct RegisterRequest {
-	// #[validate(email(message = "Invalid email format"))]
-	// pub email: String,
+	#[validate(email(message = "Invalid email format"))]
+	pub email: String,
 	#[validate(length(
 		min = 2,
 		max = 100,
@@ -64,7 +70,8 @@ mod validation_auth_tests {
 	#[test]
 	fn test_login_request_validation() {
 		let mut request = LoginRequest {
-			email: "example@email.com".to_string(),
+			// email: "example@email.com".to_string(),
+			username: String::from("admin"),
 			password: String::from("password123"),
 		};
 		assert!(request.validate().is_ok(), "LoginRequest should be valid");
@@ -78,7 +85,7 @@ mod validation_auth_tests {
 	#[test]
 	fn test_register_request_validation() {
 		let request = RegisterRequest {
-			// email: "example@email.com".to_string(),
+			email: "example@email.com".to_string(),
 			username: String::from("username"),
 			password: String::from("password123"),
 		};
