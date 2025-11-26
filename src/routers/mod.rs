@@ -21,12 +21,12 @@ use utoipa_swagger_ui::SwaggerUi;
 
 pub mod auth;
 pub mod public;
-pub mod sys_post;
-pub mod sys_user;
 pub mod sys_dept;
 pub mod sys_dict;
 pub mod sys_menu;
+pub mod sys_post;
 pub mod sys_role;
+pub mod sys_user;
 
 pub fn public_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	Router::new().merge(public::routes(state))

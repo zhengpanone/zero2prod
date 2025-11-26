@@ -44,48 +44,10 @@
 // }
 
 // 方案2 初始化日志订阅器
-use tracing_subscriber::{
-	fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
-};
+use tracing::info;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-/// 初始化日志系统
-pub fn init() -> Result<(), Box<dyn std::error::Error>> {
-	init_with_config(LogConfig::default())
-}
-
-/// 日志配置
-#[derive(Debug, Clone)]
-pub struct LogConfig {
-	/// 默认日志级别
-	pub default_level: String,
-	/// 是否启用彩色输出
-	pub enable_color: bool,
-	/// 是否打印文件名
-	pub show_file: bool,
-	/// 是否打印行号
-	pub show_line_number: bool,
-	/// 是否打印线程信息
-	pub show_thread: bool,
-	/// 特定模块的日志级别
-	pub module_levels: Vec<(String, String)>,
-}
-
-impl Default for LogConfig {
-	fn default() -> Self {
-		Self {
-			default_level: "info".to_string(),
-			enable_color: true,
-			show_file: true,
-			show_line_number: true,
-			show_thread: true,
-			module_levels: vec![
-				("hyper".to_string(), "warn".to_string()),
-				("sqlx".to_string(), "warn".to_string()),
-				("tower".to_string(), "warn".to_string()),
-			],
-		}
-	}
-}
+use crate::config::logger::LogConfig;
 
 /// 使用配置初始化日志系统
 pub fn init_with_config(
@@ -119,7 +81,7 @@ pub fn init_with_config(
 		.with(fmt_layer)
 		.init();
 
-	tracing::info!(
+	info!(
 		default_level = %config.default_level,
 		"日志系统初始化完成"
 	);
@@ -127,13 +89,17 @@ pub fn init_with_config(
 	Ok(())
 }
 
-/// 为测试环境初始化日志
 #[cfg(test)]
-pub fn init_test() {
-	let _ = tracing_subscriber::fmt()
-		.with_env_filter("warn") // 测试环境只显示警告和错误
-		.with_test_writer() // 用于测试的输出
-		.try_init();
+mod tests {
+
+	/// 为测试环境初始化日志
+	#[test]
+	pub fn init_test() {
+		let _ = tracing_subscriber::fmt()
+			.with_env_filter("warn") // 测试环境只显示警告和错误
+			.with_test_writer() // 用于测试的输出
+			.try_init();
+	}
 }
 
 // // 基本使用

@@ -25,7 +25,7 @@ pub struct CreateMenuRequest {
 	#[validate(length(min = 1, max = 100))]
 	#[schema(example = "system", min_length = 1, max_length = 100)]
 	pub component: String,
-	///
+	/// 是否为外链
 	pub is_frame: String,
 	/// 是否缓存
 	#[schema(example = true)]
@@ -79,7 +79,7 @@ pub struct UpdateMenuRequest {
 	#[validate(length(min = 1, max = 100))]
 	#[schema(example = "system", min_length = 1, max_length = 100)]
 	pub component: String,
-	///
+	/// 是否为外链
 	pub is_frame: String,
 	/// 是否缓存
 	#[schema(example = true)]

@@ -1,14 +1,17 @@
-use crate::{config::Config, middleware::rate_limiter, state::AppState};
+use crate::{
+	config::Config, init::logger::init_with_config, middleware::rate_limiter,
+	state::AppState,
+};
 use dotenvy::dotenv;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
-use tracing::info;
-use zero2prod::init::logger;
+use tracing::{info, warn};
 mod config;
 mod db;
 mod enums;
 mod errors;
 mod handlers;
+mod init;
 mod middleware;
 mod models;
 mod repositories;
@@ -25,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
 	// 加载配置
 	let config = Config::from_env()?;
 
-	logger::init();
+	let _ = init_with_config(config.clone().logger);
 	info!("Starting server...");
 
 	// 创建应用状态

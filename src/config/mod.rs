@@ -1,6 +1,7 @@
 pub mod app;
 pub mod database;
 pub mod jwt;
+pub mod logger;
 pub mod server;
 
 // use crate::config::Settings;
@@ -27,6 +28,7 @@ use crate::config::{
 	app::{AppConfig, Environment},
 	database::{DatabaseConfig, RedisConfig},
 	jwt::JwtConfig,
+	logger::LogConfig,
 	server::ServerConfig,
 };
 
@@ -35,10 +37,11 @@ pub struct Config {
 	pub server: ServerConfig,
 	pub database: DatabaseConfig,
 	pub redis: RedisConfig,
-	// pub rabbitmq: RabbitMQConfig,
 	pub jwt: JwtConfig,
 	pub app: AppConfig,
+	pub logger: LogConfig,
 	// pub monitoring: MonitoringConfig,
+	// pub rabbitmq: RabbitMQConfig,
 }
 
 impl Config {
@@ -91,12 +94,15 @@ impl Config {
 			log_level: env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
 		};
 
+		let logger = LogConfig::default();
+
 		Ok(Config {
 			server,
 			database,
 			redis,
 			jwt,
 			app,
+			logger,
 		})
 	}
 }
