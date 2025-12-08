@@ -50,7 +50,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use crate::config::logger::LogConfig;
 
 /// 使用配置初始化日志系统
-pub fn init_with_config(
+pub fn init_log_with_config(
 	config: LogConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
 	// 构建环境过滤器

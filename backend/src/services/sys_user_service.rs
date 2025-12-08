@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::{
 	errors::{AppError, Result},
 	models::sys_user::SysUser,
@@ -29,7 +27,7 @@ impl UserService {
 		self.repository.find_all().await
 	}
 
-	pub async fn get_user_detail(&self, id: Uuid) -> Result<SysUser> {
+	pub async fn get_user_detail(&self, id: &str) -> Result<SysUser> {
 		self.repository.find_by_id(id).await?.ok_or_else(|| {
 			AppError::NotFound(format!("User with id {} not found", id))
 		})
@@ -51,15 +49,15 @@ impl UserService {
 
 	pub async fn delete_user(&self, ids: IdsRequest) -> Result<()> {
 		// 将字符串 ID 转换为 Uuid，更安全地处理解析错误
-		let ids: Vec<Uuid> = ids
+		let ids: Vec<String> = ids
 			.ids
 			.iter()
 			.map(|id| {
-				id.parse::<Uuid>().map_err(|e| {
+				id.parse::<String>().map_err(|e| {
 					AppError::BadRequest(format!("Invalid UUID: {}", e))
 				})
 			})
-			.collect::<Result<Vec<Uuid>>>()?;
+			.collect::<Result<Vec<String>>>()?;
 		let deleted = self.repository.delete(&ids).await?;
 		if !deleted {
 			return Err(AppError::NotFound(format!(
@@ -72,7 +70,7 @@ impl UserService {
 
 	pub async fn update_user(
 		&self,
-		id: Uuid,
+		id: &str,
 		req: UpdateUserRequest,
 	) -> Result<SysUser> {
 		let pool = &self.repository.pool;
@@ -92,5 +90,11 @@ impl UserService {
 	pub async fn find_by_email(&self, email: &str) -> Result<Option<SysUser>> {
 		let user = self.repository.find_by_email(email).await?;
 		Ok(user)
+	}
+
+	pub async fn exist_superadmin(&self) -> Result<bool> {
+		let user = self.repository.find_by_username("admin").await?;
+		// Ok(user.is_some())
+		Ok(false)
 	}
 }

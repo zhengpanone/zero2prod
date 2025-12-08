@@ -32,6 +32,12 @@ impl SysRoleService {
 
 	pub async fn create_role(&self, req: CreateRoleRequest) -> Result<SysRole> {
 		todo!()
+		// if self.repository.exists_by_code_name(&req.name).await? {
+		// 	return Err(AppError::BadRequest(format!(
+		// 		"Role with name {} already exists",
+		// 		req.name
+		// 	)));
+		// }
 	}
 
 	pub async fn update_role(

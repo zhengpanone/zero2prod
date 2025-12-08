@@ -57,17 +57,18 @@ impl AuthService {
 				"Invalid email or password".to_string(),
 			));
 		}
-		let jti = Uuid::new_v4();
-		let access = sign_access(user.id, &self.state.config.jwt)
+		let jti = Uuid::new_v4().to_string();
+		let user_id = user.id.to_string();
+		let access = sign_access(&user_id, &self.state.config.jwt)
 			.map_err(AppError::Internal)?;
 
-		let refresh = sign_refresh(user.id, jti, &self.state.config.jwt)
+		let refresh = sign_refresh(&user_id, &jti, &self.state.config.jwt)
 			.map_err(AppError::Internal)?;
 
 		sqlx::query!(
 		"INSERT INTO refresh_tokens (jti, user_id, expires_at) VALUES ($1,$2,$3)",
 		jti,
-		user.id,
+		user_id,
 		Utc::now() + Duration::days(self.state.config.jwt.refresh_ttl_days)
 	)
 		.execute(&self.state.db)
@@ -123,7 +124,6 @@ impl AuthService {
 		let jti = claims
 			.jti
 			.clone()
-			.and_then(|s| uuid::Uuid::parse_str(&s).ok())
 			.ok_or(AppError::Auth("退出登录失败！".to_string()))?;
 
 		sqlx::query!("UPDATE refresh_tokens SET revoked=true WHERE jti=$1", jti)
@@ -131,5 +131,29 @@ impl AuthService {
 			.await
 			.map_err(AppError::Database)?;
 		Ok("退出登录成功！".to_string())
+	}
+
+	pub async fn create_superadmin(
+		&self,
+		username: String,
+		password: String,
+		email: String,
+	) -> Result<()> {
+		let user = self.user_service.find_by_username(&username).await?;
+		if user.is_some() {
+			return Err(AppError::BadRequest("用户名已存在".to_string()));
+		}
+		// _ = self.user_service.create_user(CreateUserRequest {
+		// 	username,
+		// 	email,
+		// 	password: hash_password(&password).unwrap(),
+		// });
+
+		Ok(())
+	}
+
+	pub async fn exist_superadmin(&self) -> Result<bool> {
+		let is_exist = self.user_service.exist_superadmin().await?;
+		Ok(is_exist)
 	}
 }

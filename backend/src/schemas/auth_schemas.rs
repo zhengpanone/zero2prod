@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
@@ -42,7 +41,7 @@ pub struct RegisterRequest {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AuthResponse {
 	pub token: String,
-	pub user_id: Uuid,
+	pub user_id: String,
 	pub email: String,
 	pub username: String,
 }
@@ -51,7 +50,7 @@ pub struct AuthResponse {
 pub struct LoginResponse {
 	pub access_token: String,
 	pub refresh_token: String,
-	pub user_id: Uuid,
+	pub user_id: String,
 	pub email: String,
 	pub username: String,
 }

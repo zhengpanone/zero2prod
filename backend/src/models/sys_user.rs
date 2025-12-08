@@ -12,7 +12,7 @@ use uuid::Uuid;
 /// FromRow：自动将数据库行转换为 Rust 结构
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct SysUser {
-	pub id: Uuid,
+	pub id: String,
 	pub username: String,
 	pub email: String,
 	// pub role: String,
@@ -55,4 +55,27 @@ pub struct PasswordReset {
 	pub token: Uuid,
 	pub expires_at: DateTime<Utc>,
 	pub created_at: DateTime<Utc>,
+}
+
+/// 用户角色
+#[derive(FromRow, Debug, Clone, Serialize, Deserialize)]
+pub struct SysUserRole {
+	pub user_id: String,
+	pub role_id: String,
+	#[sqlx(default)]
+	pub created_at: Option<DateTime<Utc>>,
+	#[sqlx(default)]
+	pub created_id: Option<String>,
+	#[sqlx(default)]
+	pub created_by: Option<String>,
+	#[sqlx(default)]
+	pub updated_id: Option<String>,
+	#[sqlx(default)]
+	pub updated_at: Option<DateTime<Utc>>,
+	#[sqlx(default)]
+	pub updated_by: Option<String>,
+	#[sqlx(default)]
+	pub is_deleted: Option<bool>,
+	#[sqlx(default)]
+	pub deleted_at: Option<DateTime<Utc>>,
 }

@@ -1,11 +1,14 @@
 use crate::{
-	config::Config, init::logger::init_with_config, middleware::rate_limiter,
-	state::AppState,
+	config::Config, init::logger::init_log_with_config, middleware::rate_limiter,
+	services::auth_service::AuthService, state::AppState,
 };
+
+use clap::Parser;
 use dotenvy::dotenv;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
+mod command;
 mod config;
 mod db;
 mod enums;
@@ -26,13 +29,39 @@ async fn main() -> anyhow::Result<()> {
 	// 加载环境变量
 	dotenv().ok();
 	// 加载配置
-	let config = Config::from_env()?;
+	let config = Config::from_env().expect("Failed to load config");
 
-	let _ = init_with_config(config.clone().logger);
+	let _ = init_log_with_config(config.clone().logger);
 	info!("Starting server...");
 
 	// 创建应用状态
 	let state = Arc::new(AppState::new(config.clone()).await?);
+
+	let cli = crate::command::Cli::parse();
+	match cli.command {
+		Some(crate::command::Commands::CreateAdmin {
+			username,
+			password,
+			email,
+		}) => {
+			let auth_service = AuthService::new(state.clone());
+			info!("create superadmin start");
+			let exist = auth_service.exist_superadmin().await?;
+			if !exist {
+				auth_service
+					.create_superadmin(username, password, email)
+					.await?;
+			}
+			info!("create superadmin end");
+		}
+		_ => {
+			if false {
+				error!("No superadmin found.");
+				error!("Please run: zero2prod create-admin -u admin -p admin123");
+				return Ok(());
+			}
+		}
+	}
 
 	// 创建限流器
 	let rate_limiter = rate_limiter::create_rate_limiter(100);

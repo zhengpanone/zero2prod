@@ -1,7 +1,6 @@
 use crate::{enums::common::UserStatus, models::sys_user::SysUser};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use uuid::Uuid;
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
@@ -54,7 +53,7 @@ pub struct UpdateUserRequest {
 )]
 pub struct UserResponse {
 	#[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
-	pub id: Uuid,
+	pub id: String,
 
 	/// 用户名
 	#[schema(example = "john_doe", min_length = 3, max_length = 50)]

@@ -83,6 +83,8 @@ impl Config {
 				.unwrap_or_else(|_| "24".to_string())
 				.parse()
 				.context("Invalid JWT_EXPIRATION_HOURS")?,
+			issuer: None,
+			audience: None,
 		};
 
 		let app = AppConfig {

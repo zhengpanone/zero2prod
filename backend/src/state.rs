@@ -12,7 +12,9 @@ pub struct AppState {
 
 impl AppState {
 	pub async fn new(config: Config) -> Result<Self, Error> {
-		let db_pool = init_db_pool(&config.database).await?;
+		let db_pool = init_db_pool(&config.database)
+			.await
+			.expect("Failed to connect to DB");
 		info!("Database connection established");
 
 		// 运行数据库迁移

@@ -11,6 +11,45 @@ impl SysRoleRepository {
 		Self { pool }
 	}
 
+	/// 检查角色名称或代码是否已存在。
+	///
+	/// 返回：
+	/// - `Ok(true)`  表示存在（名称或代码任一匹配）
+	/// - `Ok(false)` 表示不存在
+	///
+	/// # Errors
+	///
+	/// 如果查询发生错误，会返回数据库错误。
+	///
+	/// # Examples
+	///
+	/// ```ignore
+	/// let exists = repo.exists_by_code_name("admin", "ADMIN").await?;
+	/// if exists {
+	///     return Err(AppError::BadRequest(format!(
+	///         "Role with name {} or code {} already exists",
+	///         req.name,
+	///         req.code,
+	///     )));
+	/// }
+	/// ```
+	pub async fn exists_by_code_name(
+		&self,
+		name: String,
+		code: String,
+	) -> Result<bool> {
+		let row = sqlx::query_scalar::<_, Option<String>>(
+			r#"
+			SELECT id FROM sys_role WHERE name = $1 OR code = $2 LIMIT 1
+			"#,
+		)
+		.bind(name)
+		.bind(code)
+		.fetch_one(&self.pool)
+		.await?;
+		Ok(true)
+	}
+
 	pub async fn find_page_with_count(
 		&self,
 		page_num: i64,
@@ -43,7 +82,7 @@ impl SysRoleRepository {
 
 		if rows.is_empty() {
 			// 如果没有数据，还需要查询总数
-			let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sys_user")
+			let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sys_role")
 				.fetch_one(&self.pool)
 				.await?;
 			return Ok((vec![], total));
@@ -52,20 +91,23 @@ impl SysRoleRepository {
 		// 从第一行获取总数
 		let total: i64 = rows[0].get("total");
 
-		// 解析所有用户数据
+		// 解析所有角色数据
 		let users: Vec<SysRole> = rows
 			.iter()
 			.map(|row| SysRole {
 				id: row.get("id"),
 				name: row.get("name"),
+				code: row.get("code"),
+				description: row.get("description"),
 				status: row.get("status"),
 				order_num: row.get("order_num"),
 				remark: row.get("remark"),
-				description: row.get("description"),
+				is_default: row.get("is_default"),
+				is_protected: row.get("is_protected"),
 				created_at: row.get("created_at"),
-				created_by: row.get("create_by"),
+				created_by: row.get("created_by"),
 				updated_at: row.get("updated_at"),
-				updated_by: row.get("update_by"),
+				updated_by: row.get("updated_by"),
 				is_deleted: row.get("is_deleted"),
 				deleted_at: row.get("deleted_at"),
 			})

@@ -1,6 +1,5 @@
 use crate::{errors::Result, models::sys_user::SysUser};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct UserRepository {
@@ -52,7 +51,7 @@ impl UserRepository {
 		Ok(count)
 	}
 
-	pub async fn find_by_id(&self, id: Uuid) -> Result<Option<SysUser>> {
+	pub async fn find_by_id(&self, id: &str) -> Result<Option<SysUser>> {
 		let user = sqlx::query_as::<_, SysUser>(
             "SELECT id, email, username, password_hash, status, created_at, updated_at FROM sys_user WHERE id = $1"
         )
@@ -70,9 +69,18 @@ impl UserRepository {
 	}
 
 	pub async fn find_by_username(&self, username: &str) -> Result<Option<SysUser>> {
-		let user = sqlx::query_as::<_,SysUser>("SELECT id, email, username,password_hash, status, created_at, updated_at FROM sys_user WHERE email = $1").bind(username)
+		let user = sqlx::query_as::<_,SysUser>("SELECT id, email, username,password_hash, status, created_at, updated_at FROM sys_user WHERE username = $1").bind(username)
 		.fetch_optional(&self.pool).await?;
 		Ok(user)
+	}
+
+	pub async fn find_exist_superadmin(&self) -> Result<bool> {
+		let user = sqlx::query_as::<_, SysUser>(
+			"SELECT 1 FROM sys_user WHERE role_type = 1",
+		)
+		.fetch_optional(&self.pool)
+		.await?;
+		Ok(true)
 	}
 
 	pub async fn create(
@@ -102,8 +110,7 @@ impl UserRepository {
 	/// 这样可以避免在事务中使用时，需要传入 &mut Transaction<'_, Postgres> 的麻烦
 	pub async fn update(
 		&self,
-
-		id: Uuid,
+		id: &str,
 		email: Option<&str>,
 		username: Option<&str>,
 	) -> Result<SysUser> {
@@ -126,7 +133,7 @@ impl UserRepository {
 		Ok(user)
 	}
 
-	pub async fn delete(&self, ids: &[Uuid]) -> Result<bool> {
+	pub async fn delete(&self, ids: &[String]) -> Result<bool> {
 		if ids.is_empty() {
 			return Ok(false);
 		}

@@ -17,7 +17,6 @@ use axum::{
 	Json,
 };
 use utoipa::OpenApi;
-use uuid::Uuid;
 
 const TAG_NAME: &str = "User API";
 
@@ -84,11 +83,11 @@ pub async fn delete_user(
 )]
 pub async fn update_user(
 	State(state): State<Arc<AppState>>,
-	Path(id): Path<Uuid>,
+	Path(id): Path<String>,
 	Json(req): Json<UpdateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
 	let user_service = UserService::new(state.clone());
-	let user = user_service.update_user(id, req).await?;
+	let user = user_service.update_user(&id, req).await?;
 	let user_response = UserResponse::from(user);
 	Ok((StatusCode::OK, Json(user_response)))
 }
