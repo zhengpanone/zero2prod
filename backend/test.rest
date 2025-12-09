@@ -13,3 +13,20 @@ content-type: application/json
 
 ### 查看用户列表
 GET http://localhost:3000/api/user/list HTTP/1.1
+
+
+### 创建角色
+POST http://localhost:3000/api/role/create HTTP/1.1
+content-type: application/json
+
+{
+    "order_num": 2,
+    "remark": "备注",
+    "role_code": "user",
+    "role_name": "普通用户",
+    "status": "0"
+}
+
+
+### 查看角色列表
+GET http://localhost:3000/api/role/list HTTP/1.1
