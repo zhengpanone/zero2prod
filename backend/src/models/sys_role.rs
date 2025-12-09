@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
+use crate::enums::common::RoleStatus;
+
 /// 内置角色说明：
 ///
 /// - **admin**
@@ -31,7 +33,7 @@ use sqlx::prelude::FromRow;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct SysRole {
 	// 角色ID
-	pub id: uuid::Uuid,
+	pub id: String,
 	// 角色名称
 	pub name: String,
 
@@ -40,7 +42,8 @@ pub struct SysRole {
 	pub description: String,
 
 	// 角色状态
-	pub status: String,
+	#[sqlx(default)]
+	pub status: RoleStatus,
 	// 是否默认角色 是否用于自动分配、默认初始化角色，通常可删
 	pub is_default: bool,
 	// 是否保护角色 是否为系统核心角色，强保护，不允许删
@@ -63,7 +66,9 @@ pub struct SysRole {
 	pub updated_by: String,
 
 	// 是否删除
-	pub is_deleted: bool,
+	#[sqlx(default)]
+	pub is_deleted: Option<bool>,
 	// 删除时间
-	pub deleted_at: DateTime<Utc>,
+	#[sqlx(default)]
+	pub deleted_at: Option<DateTime<Utc>>,
 }

@@ -2,7 +2,8 @@ use chrono::Utc;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use uuid::Uuid;
 use zero2prod::{
-	models::sys_role::SysRole, repositories::sys_role_repository::SysRoleRepository,
+	enums::common::RoleStatus, models::sys_role::SysRole,
+	repositories::sys_role_repository::SysRoleRepository,
 };
 
 /// 测试辅助函数：创建测试数据库连接池
@@ -30,11 +31,11 @@ async fn cleanup_test_data(pool: &PgPool) {
 fn create_test_role(name: &str, code: &str) -> SysRole {
 	let now = Utc::now();
 	SysRole {
-		id: Uuid::new_v4(),
+		id: Uuid::new_v4().to_string(),
 		name: name.to_string(),
 		code: code.to_string(),
 		description: format!("Test role for {}", name),
-		status: "active".to_string(),
+		status: RoleStatus::from_option_str(Some("active")),
 		is_default: false,
 		is_protected: false,
 		order_num: 1,
@@ -43,8 +44,8 @@ fn create_test_role(name: &str, code: &str) -> SysRole {
 		created_by: "test_user".to_string(),
 		updated_at: now,
 		updated_by: "test_user".to_string(),
-		is_deleted: false,
-		deleted_at: now,
+		is_deleted: Some(false),
+		deleted_at: None,
 	}
 }
 
@@ -59,7 +60,7 @@ async fn insert_test_role(pool: &PgPool, role: &SysRole) {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         "#,
 	)
-	.bind(role.id)
+	.bind(&role.id)
 	.bind(&role.name)
 	.bind(&role.code)
 	.bind(&role.description)
@@ -101,10 +102,7 @@ async fn test_exists_by_code_name_found_by_name() {
 
 	// 测试通过名称查找存在的角色
 	let exists = repo
-		.exists_by_code_name(
-			"test_role_exists".to_string(),
-			"nonexistent_code".to_string(),
-		)
+		.exists_by_code_name("test_role_exists", "nonexistent_code")
 		.await
 		.unwrap();
 
@@ -124,7 +122,7 @@ async fn test_exists_by_code_name_found_by_code() {
 
 	// 测试通过代码查找存在的角色
 	let exists = repo
-		.exists_by_code_name("nonexistent_name".to_string(), "CODE002".to_string())
+		.exists_by_code_name("nonexistent_name", "CODE002")
 		.await
 		.unwrap();
 
@@ -140,10 +138,7 @@ async fn test_exists_by_code_name_not_found() {
 
 	// 测试查找不存在的角色
 	let exists = repo
-		.exists_by_code_name(
-			"nonexistent_name".to_string(),
-			"nonexistent_code".to_string(),
-		)
+		.exists_by_code_name("nonexistent_name", "nonexistent_code")
 		.await
 		.unwrap();
 

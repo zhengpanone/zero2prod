@@ -1,5 +1,9 @@
-use crate::{errors::Result, models::sys_role::SysRole};
+use crate::{
+	enums::common::RoleStatus, errors::Result, models::sys_role::SysRole,
+	schemas::sys_role_schemas::CreateRoleRequest,
+};
 use sqlx::{PgPool, Row};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct SysRoleRepository {
@@ -9,6 +13,45 @@ pub struct SysRoleRepository {
 impl SysRoleRepository {
 	pub fn new(pool: PgPool) -> Self {
 		Self { pool }
+	}
+
+	pub async fn create(&self, role: CreateRoleRequest) -> Result<SysRole> {
+		let mut tx = self.pool.begin().await?;
+
+		let query = r#"
+			INSERT INTO sys_role (
+				id,
+				name,
+				code,
+				description,
+				status,
+				order_num,
+				remark,
+				created_by
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING
+				id, name, code, description, status, order_num, remark,
+				is_default, is_protected, created_at, created_by, updated_at, updated_by,
+				is_deleted
+			"#;
+
+		let id = Uuid::new_v4().to_string();
+		let status = RoleStatus::from_option_str(role.status.as_deref());
+		let create_by = role.created_by.unwrap_or_else(|| "default".to_string());
+		let role = sqlx::query_as::<_, SysRole>(query)
+			.bind(id)
+			.bind(role.role_name)
+			.bind(role.role_code)
+			.bind(role.description.unwrap_or_default())
+			.bind(status)
+			.bind(role.order_num)
+			.bind(role.remark)
+			.bind(create_by)
+			.fetch_one(&mut *tx)
+			.await?;
+		tx.commit().await?;
+		Ok(role)
 	}
 
 	/// 检查角色名称或代码是否已存在。
@@ -33,21 +76,17 @@ impl SysRoleRepository {
 	///     )));
 	/// }
 	/// ```
-	pub async fn exists_by_code_name(
-		&self,
-		name: String,
-		code: String,
-	) -> Result<bool> {
-		let row = sqlx::query_scalar::<_, Option<String>>(
+	pub async fn exists_by_code_name(&self, name: &str, code: &str) -> Result<bool> {
+		let row = sqlx::query_scalar::<_, String>(
 			r#"
 			SELECT id FROM sys_role WHERE name = $1 OR code = $2 LIMIT 1
 			"#,
 		)
 		.bind(name)
 		.bind(code)
-		.fetch_one(&self.pool)
+		.fetch_optional(&self.pool)
 		.await?;
-		Ok(true)
+		Ok(row.is_some())
 	}
 
 	pub async fn find_page_with_count(

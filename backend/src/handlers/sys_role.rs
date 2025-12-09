@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use axum::{
 	extract::{Path, State},
+	http::StatusCode,
 	Json,
 };
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
-	errors::ApiError,
+	errors::{ApiError, Result},
 	schemas::{
 		common_schemas::IdsRequest,
 		sys_role_schemas::{CreateRoleRequest, RoleResponse, UpdateRoleRequest},
@@ -35,9 +36,14 @@ const TAG_NAME: &str = "Role API";
 pub async fn create_role(
 	State(state): State<Arc<AppState>>,
 	Json(req): Json<CreateRoleRequest>,
-) {
+) -> Result<(StatusCode, Json<ApiResponse<RoleResponse>>)> {
 	let role_service = SysRoleService::new(state.clone());
-	todo!()
+	let role = role_service.create_role(req).await?;
+	let role_response = RoleResponse::from(role);
+	Ok(ApiResponse::ok_with_code_data(
+		StatusCode::CREATED,
+		role_response,
+	))
 }
 
 /// 删除角色 （204 无内容）

@@ -49,9 +49,9 @@ pub fn admin_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	// 管理员路由（需要认证 + 管理员权限）
 	let admin_routes = Router::new()
 		.route("/list", get(list_users))
-		.route("/create_user", post(create_user))
-		.route("/update", get(list_users))
-		.route("/delete", get(list_users))
+		.route("/create", post(create_user))
+		.route("/update", put(list_users))
+		.route("/delete", delete(list_users))
 		.layer(middleware::from_fn_with_state(
 			state.clone(),
 			auth::admin_middleware,

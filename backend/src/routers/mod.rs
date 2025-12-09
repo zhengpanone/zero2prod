@@ -38,7 +38,8 @@ pub fn public_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 pub fn api_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	let api_router = Router::new()
 		.nest("/auth", auth::routes())
-		.nest("/user", sys_user::routes(state));
+		.nest("/user", sys_user::routes(state.clone()))
+		.nest("/role", sys_role::routes(state.clone()));
 	// .nest("/posts", posts::routes())
 	// .nest("/comments", comments::routes())
 	// .nest("/orders", orders::routes())

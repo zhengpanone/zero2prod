@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-	errors::Result,
+	errors::{AppError, Result},
 	models::sys_role::SysRole,
 	repositories::sys_role_repository::SysRoleRepository,
 	schemas::{
@@ -31,13 +31,18 @@ impl SysRoleService {
 	}
 
 	pub async fn create_role(&self, req: CreateRoleRequest) -> Result<SysRole> {
-		todo!()
-		// if self.repository.exists_by_code_name(&req.name).await? {
-		// 	return Err(AppError::BadRequest(format!(
-		// 		"Role with name {} already exists",
-		// 		req.name
-		// 	)));
-		// }
+		if self
+			.repository
+			.exists_by_code_name(&req.role_name, &req.role_code)
+			.await?
+		{
+			return Err(AppError::BadRequest(format!(
+				"Role with name: {} or code: {} already exists",
+				&req.role_name, &req.role_name
+			)));
+		}
+		// Ok(SysRole::from(req))
+		self.repository.create(req).await
 	}
 
 	pub async fn update_role(

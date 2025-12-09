@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
+use tracing::warn;
 use utoipa::ToSchema;
 /// 用户状态枚举
 ///
@@ -34,5 +35,44 @@ impl UserStatus {
 	/// 检查用户是否可以被禁用
 	pub fn can_be_deleted(&self) -> bool {
 		matches!(self, UserStatus::Active)
+	}
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "role_status_enum")] // 对应 postgres 的类型名
+#[sqlx(rename_all = "lowercase")] // 如果枚举变体小写对应 db 字符串
+pub enum RoleStatus {
+	Active,
+	Inactive,
+	Banned,
+}
+
+impl RoleStatus {
+	pub fn from_option_str(status: Option<&str>) -> Self {
+		match status.map(|s| s.to_lowercase()) {
+			Some(s) if s == "active" || s == "0" => RoleStatus::Active,
+			Some(s) if s == "inactive" || s == "1" => RoleStatus::Inactive,
+			Some(s) if s == "banned" || s == "2" => RoleStatus::Banned,
+			Some(s) => {
+				warn!("Unknown status input: {}, default to Active", s);
+				RoleStatus::Active
+			}
+			None => RoleStatus::Active,
+		}
+	}
+
+	pub fn as_str(&self) -> &'static str {
+		match self {
+			RoleStatus::Active => "active",
+			RoleStatus::Inactive => "inactive",
+			RoleStatus::Banned => "banned",
+		}
+	}
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for RoleStatus {
+	fn default() -> Self {
+		RoleStatus::Active
 	}
 }

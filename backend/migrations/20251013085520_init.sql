@@ -82,15 +82,23 @@ comment on COLUMN sys_user_role.user_id is '用户ID';
 comment on COLUMN sys_user_role.role_id is '角色ID';
 
 
+do $$
+BEGIN
+IF NOT EXISTS (SELECT 1 FROM pg_type where typname = 'role_status_enum') THEN
+	CREATE TYPE role_status_enum as ENUM ('active', 'inactive','banned');
+END IF;
+
+end$$;
+
 DROP TABLE IF EXISTS sys_role;
 CREATE TABLE IF NOT EXISTS sys_role (
     id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
     code VARCHAR(255) NOT NULL UNIQUE,
-    status user_status_enum NOT NULL DEFAULT 'active',
+    status role_status_enum NOT NULL DEFAULT 'active',
     order_num int not null default 1,
     remark VARCHAR(255),
-    description VARCHAR(255) NOT NULL,
+    description VARCHAR(255),
     is_default boolean not null default false,
     is_protected boolean not null default false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -117,7 +125,7 @@ comment on COLUMN sys_role.is_deleted is '是否删除';
 DROP TABLE IF EXISTS refresh_tokens;
 CREATE TABLE IF NOT EXISTS refresh_tokens (
 jti VARCHAR(36) PRIMARY KEY,
-user_id VARCHAR(36) NOT NULL REFERENCES sys_user(id) ON DELETE CASCADE,
+user_id VARCHAR(36) NOT NULL ,
 expires_at TIMESTAMPTZ NOT NULL,
 revoked BOOLEAN NOT NULL DEFAULT FALSE,
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -127,7 +135,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(user_id);
 -- Create email_verifications table
 DROP TABLE IF EXISTS email_verifications;
 CREATE TABLE IF NOT EXISTS email_verifications (
-user_id VARCHAR(36) PRIMARY KEY REFERENCES sys_user(id) ON DELETE CASCADE,
+user_id VARCHAR(36) PRIMARY KEY ,
 token VARCHAR(36) NOT NULL,
 expires_at TIMESTAMPTZ NOT NULL,
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -136,7 +144,7 @@ created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 -- Create password_resets table
 DROP TABLE IF EXISTS password_resets;
 CREATE TABLE IF NOT EXISTS password_resets (
-user_id VARCHAR(36) PRIMARY KEY REFERENCES sys_user(id) ON DELETE CASCADE,
+user_id VARCHAR(36) PRIMARY KEY ,
 token VARCHAR(36) NOT NULL,
 expires_at TIMESTAMPTZ NOT NULL,
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
