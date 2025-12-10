@@ -114,7 +114,7 @@ pub fn sign_refresh(
 /// # 返回
 /// - 返回解析出的 `Claims`
 /// - 如果 token 无效或过期，会返回错误（jsonwebtoken 的错误会被传递上来）
-pub fn verify(token: &str, jwt_config: &JwtConfig) -> Result<Claims> {
+pub fn verify_token(token: &str, jwt_config: &JwtConfig) -> Result<Claims> {
 	decode::<Claims>(
 		token,
 		&DecodingKey::from_secret(jwt_config.secret.as_bytes()),

@@ -17,7 +17,7 @@ use crate::{
 	state::AppState,
 	utils::{
 		encrypt::{hash_password, verify_password},
-		jwt::{generate_token, sign_access, sign_refresh, verify},
+		jwt::{generate_token, sign_access, sign_refresh, verify_token},
 	},
 };
 
@@ -101,7 +101,7 @@ impl AuthService {
 			.user_service
 			.create_user(CreateUserRequest {
 				username: register.username.to_string(),
-				email: register.username.to_string(),
+				email: register.email.to_string(),
 				password: hash_password(&register.password).unwrap(),
 			})
 			.await?;
@@ -117,7 +117,7 @@ impl AuthService {
 	}
 
 	pub async fn logout(&self, token: RefreshRequest) -> Result<String> {
-		let claims = verify(&token.refresh_token, &self.state.config.jwt)
+		let claims = verify_token(&token.refresh_token, &self.state.config.jwt)
 			.map_err(|_| AppError::Auth("退出登录失败！".to_string()))?;
 		let jti = claims
 			.jti

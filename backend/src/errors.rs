@@ -36,6 +36,9 @@ pub enum AppError {
 	#[error("Bad request: {0}")]
 	BadRequest(String),
 
+	#[error("Unauthorized: {0}")]
+	Unauthorized(String),
+
 	#[error("Validation error: {0}")]
 	Validation(String),
 
@@ -68,6 +71,10 @@ impl IntoResponse for AppError {
 			AppError::BadRequest(ref e) => {
 				error!("Bad request: {:?}", e);
 				(StatusCode::BAD_REQUEST, "BAD_REQUEST", e.to_string())
+			}
+			AppError::Unauthorized(ref e) => {
+				error!("Unauthorized: {:?}", e);
+				(StatusCode::UNAUTHORIZED, "UNAUTHORIZED", e.to_string())
 			}
 			AppError::Validation(ref msg) => {
 				error!("Validation error: {:?}", msg);
