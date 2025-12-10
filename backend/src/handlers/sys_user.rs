@@ -116,6 +116,12 @@ pub async fn list_users(
 	))
 }
 
+pub async fn get_by_id(
+	State(state): State<Arc<AppState>>,
+) -> Result<(StatusCode, Json<UserResponse>)> {
+	todo!()
+}
+
 #[derive(OpenApi)]
 #[openapi(
     paths(list_users, create_user,delete_user,update_user),

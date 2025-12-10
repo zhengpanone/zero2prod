@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-	handlers::sys_user::{create_user, delete_user, list_users, update_user},
+	handlers::sys_user::{
+		create_user, delete_user, get_by_id, list_users, update_user,
+	},
 	middleware::auth,
 	state::AppState,
 };
@@ -17,12 +19,37 @@ use axum::{
 /// 路由列表:
 /// - GET    /api/user/detail - 获取用户详情 (需要认证)
 /// - PUT    /api/users/update - 更新用户 (需要认证)
+///
+/// Constructs and returns a router with both public and protected routes.
+///
+/// The router includes:
+/// - Public routes (no authentication required)
+/// - Protected routes (require authentication middleware)
+///
+/// # Public Routes
+/// - GET `/list`: List all users
+///
+/// # Protected Routes
+/// - POST `/create`: Create a new user
+/// - DELETE `/delete`: Delete a user
+/// - PUT `/update`: Update a user
+///
+/// # Middleware
+/// The protected routes are wrapped with an authentication middleware that verifies
+/// requests before allowing access to the protected endpoints.
+///
+/// # Arguments
+/// * `state` - Shared application state containing required dependencies
+///
+/// # Returns
+/// A configured Router instance with both public and protected routes merged together
 pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	// 公开路由（无需认证）
 	let public_routes = Router::new().route("/list", get(list_users));
 	// 受保护的 API 路由（需要认证）
 	let protect_routes = Router::new()
 		.route("/create", post(create_user))
+		.route("/getById", get(get_by_id))
 		.route("/delete", delete(delete_user))
 		.route("/update", put(update_user))
 		// 挂载认证中间件

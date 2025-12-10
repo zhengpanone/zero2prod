@@ -58,17 +58,15 @@ impl AuthService {
 			));
 		}
 		let jti = Uuid::new_v4().to_string();
-		let user_id = user.id.to_string();
-		let access = sign_access(&user_id, &self.state.config.jwt)
-			.map_err(AppError::Internal)?;
 
-		let refresh = sign_refresh(&user_id, &jti, &self.state.config.jwt)
-			.map_err(AppError::Internal)?;
+		let access = sign_access(&user, &self.state.config.jwt)?;
+
+		let refresh = sign_refresh(&user, &jti, &self.state.config.jwt)?;
 
 		sqlx::query!(
 		"INSERT INTO refresh_tokens (jti, user_id, expires_at) VALUES ($1,$2,$3)",
 		jti,
-		user_id,
+		user.id,
 		Utc::now() + Duration::days(self.state.config.jwt.refresh_ttl_days)
 	)
 		.execute(&self.state.db)
@@ -107,7 +105,7 @@ impl AuthService {
 				password: hash_password(&register.password).unwrap(),
 			})
 			.await?;
-		let token = generate_token(&user.id, &self.state.config.jwt.secret).unwrap();
+		let token = generate_token(&user, &self.state.config.jwt.secret).unwrap();
 		let auth_response = AuthResponse {
 			user_id: user.id,
 			email: user.email,

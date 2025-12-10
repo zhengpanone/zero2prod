@@ -41,6 +41,8 @@ pub enum AppError {
 
 	#[error("Internal server error: {0}")]
 	Internal(#[from] anyhow::Error),
+	#[error("JWT error: {0}")]
+	JWTError(String),
 }
 
 // 实现 IntoResponse 接口，将 AppError 转换为 Response
@@ -74,6 +76,10 @@ impl IntoResponse for AppError {
 					"VALIDATION_ERROR",
 					msg.clone(),
 				)
+			}
+			AppError::JWTError(ref msg) => {
+				error!("JWT  error: {:?}", msg);
+				(StatusCode::UNPROCESSABLE_ENTITY, "JWT_ERROR", msg.clone())
 			}
 			AppError::Internal(ref e) => {
 				error!("Internal error: {:?}", e);
