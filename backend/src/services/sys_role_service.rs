@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::middleware::auth::AuthUser;
 use crate::{
 	errors::{AppError, Result},
 	models::sys_role::SysRole,
@@ -30,7 +31,11 @@ impl SysRoleService {
 		todo!()
 	}
 
-	pub async fn create_role(&self, req: CreateRoleRequest) -> Result<SysRole> {
+	pub async fn create_role(
+		&self,
+		req: CreateRoleRequest,
+		auth_user: Arc<AuthUser>,
+	) -> Result<SysRole> {
 		if self
 			.repository
 			.exists_by_code_name(&req.role_name, &req.role_code)
@@ -42,7 +47,7 @@ impl SysRoleService {
 			)));
 		}
 		// Ok(SysRole::from(req))
-		self.repository.create(req).await
+		self.repository.create(req, &auth_user.user_id).await
 	}
 
 	pub async fn update_role(

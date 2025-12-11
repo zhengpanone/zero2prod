@@ -28,7 +28,16 @@ pub enum AppError {
 	Database(#[from] sqlx::Error),
 
 	#[error("authentication error: {0}")]
-	Auth(String),
+	Auth(#[from] AuthError), // <- 这里从 AuthError 转换
+
+	#[error("Unauthorized: {0}")]
+	Unauthorized(String),
+
+	#[error("JWT error: {0}")]
+	JWTError(String),
+
+	#[error("Validation error: {0}")]
+	Validation(String),
 
 	#[error("Not found: {0}")]
 	NotFound(String),
@@ -36,16 +45,26 @@ pub enum AppError {
 	#[error("Bad request: {0}")]
 	BadRequest(String),
 
-	#[error("Unauthorized: {0}")]
-	Unauthorized(String),
-
-	#[error("Validation error: {0}")]
-	Validation(String),
-
 	#[error("Internal server error: {0}")]
 	Internal(#[from] anyhow::Error),
-	#[error("JWT error: {0}")]
-	JWTError(String),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum AuthError {
+	#[error("wrong credentials")]
+	WrongCredentials,
+
+	#[error("missing credentials")]
+	MissingCredentials,
+
+	#[error("token creation failed")]
+	TokenCreation,
+
+	#[error("invalid token")]
+	InvalidToken,
+
+	#[error("Bad request: {0}")]
+	BadRequest(String),
 }
 
 // 实现 IntoResponse 接口，将 AppError 转换为 Response

@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
+	middleware,
 	routing::{delete, get, post, put},
 	Router,
 };
 
+use crate::middleware::auth;
 use crate::{
 	handlers::sys_role::{create_role, delete_role, list_role, update_role},
 	state::AppState,
@@ -17,8 +19,10 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 		.route("/create", post(create_role))
 		.route("/update", put(update_role))
 		.route("/delete", delete(delete_role))
-		.with_state(state);
-	// TODO  后续需要认证
+		.route_layer(middleware::from_fn_with_state(
+			state.clone(),
+			auth::auth_middleware,
+		));
 	protect_routes
 }
 

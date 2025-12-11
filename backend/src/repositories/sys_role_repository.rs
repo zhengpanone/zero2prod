@@ -15,7 +15,11 @@ impl SysRoleRepository {
 		Self { pool }
 	}
 
-	pub async fn create(&self, role: CreateRoleRequest) -> Result<SysRole> {
+	pub async fn create(
+		&self,
+		role: CreateRoleRequest,
+		user_id: &str,
+	) -> Result<SysRole> {
 		let mut tx = self.pool.begin().await?;
 
 		let query = r#"
@@ -47,7 +51,7 @@ impl SysRoleRepository {
 			.bind(status)
 			.bind(role.order_num)
 			.bind(role.remark)
-			.bind(create_by)
+			.bind(user_id)
 			.fetch_one(&mut *tx)
 			.await?;
 		tx.commit().await?;

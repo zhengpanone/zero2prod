@@ -85,3 +85,4 @@ metrics = "0.24.3"
 metrics-exporter-prometheus = "0.18.1"
 clap = { version = "4.5.53", features = ["derive"] }
 async-trait = "0.1.89"
+axum-extra = { version = "0.12.2", features = ["typed-header"] }

@@ -5,7 +5,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-	errors::{AppError, Result},
+	errors::{AppError, AuthError, Result},
 	schemas::{
 		auth_schemas::{
 			AuthResponse, LoginRequest, LoginResponse, RefreshRequest,
@@ -17,7 +17,7 @@ use crate::{
 	state::AppState,
 	utils::{
 		encrypt::{hash_password, verify_password},
-		jwt::{generate_token, sign_access, sign_refresh, verify_token},
+		jwt_utils::{generate_token, sign_access, sign_refresh, verify_token},
 	},
 };
 
@@ -54,7 +54,7 @@ impl AuthService {
 		)?;
 		if !is_valid {
 			return Err(AppError::BadRequest(
-				"Invalid email or password".to_string(),
+				"Invalid username or password".to_string(),
 			));
 		}
 		let jti = Uuid::new_v4().to_string();
@@ -118,11 +118,11 @@ impl AuthService {
 
 	pub async fn logout(&self, token: RefreshRequest) -> Result<String> {
 		let claims = verify_token(&token.refresh_token, &self.state.config.jwt)
-			.map_err(|_| AppError::Auth("退出登录失败！".to_string()))?;
+			.map_err(|_| AuthError::BadRequest("退出登录失败！".to_string()))?;
 		let jti = claims
 			.jti
 			.clone()
-			.ok_or(AppError::Auth("退出登录失败！".to_string()))?;
+			.ok_or(AuthError::BadRequest("退出登录失败！".to_string()))?;
 
 		sqlx::query!("UPDATE refresh_tokens SET revoked=true WHERE jti=$1", jti)
 			.execute(&self.state.db)

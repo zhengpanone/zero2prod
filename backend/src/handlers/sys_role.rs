@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
+use axum::extract::Extension;
 use axum::{
 	extract::{Path, State},
 	http::StatusCode,
 	Json,
 };
+use std::sync::Arc;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
 	errors::{ApiError, Result},
+	middleware::auth::AuthUser,
 	schemas::{
 		common_schemas::IdsRequest,
 		sys_role_schemas::{CreateRoleRequest, RoleResponse, UpdateRoleRequest},
@@ -35,10 +36,12 @@ const TAG_NAME: &str = "Role API";
 )]
 pub async fn create_role(
 	State(state): State<Arc<AppState>>,
+	Extension(auth_user): Extension<Arc<AuthUser>>,
+	// auth_user: Arc<AuthUser>,
 	Json(req): Json<CreateRoleRequest>,
 ) -> Result<(StatusCode, Json<ApiResponse<RoleResponse>>)> {
 	let role_service = SysRoleService::new(state.clone());
-	let role = role_service.create_role(req).await?;
+	let role = role_service.create_role(req, auth_user).await?;
 	let role_response = RoleResponse::from(role);
 	Ok(ApiResponse::ok_with_code_data(
 		StatusCode::CREATED,
