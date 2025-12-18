@@ -19,8 +19,8 @@ use utoipa_scalar::Scalar;
 use utoipa_scalar::Servable as ScalarServable;
 use utoipa_swagger_ui::SwaggerUi;
 
-pub mod auth;
 pub mod public;
+pub mod sys_auth;
 pub mod sys_dept;
 pub mod sys_dict;
 pub mod sys_menu;
@@ -37,7 +37,7 @@ pub fn public_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 /// 这里使用引用 `&AppState` 避免移动所有权
 pub fn api_routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
 	let api_router = Router::new()
-		.nest("/auth", auth::routes())
+		.nest("/auth", sys_auth::routes())
 		.nest("/user", sys_user::routes(state.clone()))
 		.nest("/role", sys_role::routes(state.clone()));
 	// .nest("/posts", posts::routes())

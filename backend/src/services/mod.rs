@@ -1,4 +1,4 @@
-pub mod auth_service;
+pub mod sys_auth_service;
 pub mod sys_dept_service;
 pub mod sys_dict_service;
 pub mod sys_menu_service;

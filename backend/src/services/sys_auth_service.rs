@@ -7,7 +7,7 @@ use validator::Validate;
 use crate::{
 	errors::{AppError, AuthError, Result},
 	schemas::{
-		auth_schemas::{
+		sys_auth_schemas::{
 			AuthResponse, LoginRequest, LoginResponse, RefreshRequest,
 			RegisterRequest,
 		},

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-	handlers::auth::{login, logout, register},
+	handlers::sys_auth::{login, logout, register},
 	state::AppState,
 };
 use axum::{routing::post, Router};

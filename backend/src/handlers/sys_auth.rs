@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use crate::{
 	errors::{ApiError, Result},
-	schemas::auth_schemas::{
+	schemas::sys_auth_schemas::{
 		AuthResponse, LoginRequest, LoginResponse, RefreshRequest, RegisterRequest,
 	},
-	services::auth_service::AuthService,
+	services::sys_auth_service::AuthService,
 	state::AppState,
 	utils::response::ApiResponse,
 };

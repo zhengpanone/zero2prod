@@ -64,7 +64,7 @@ pub struct RefreshRequest {
 mod validation_auth_tests {
 	use validator::Validate;
 
-	use crate::schemas::auth_schemas::{LoginRequest, RegisterRequest};
+	use crate::schemas::sys_auth_schemas::{LoginRequest, RegisterRequest};
 
 	#[test]
 	fn test_login_request_validation() {

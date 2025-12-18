@@ -1,8 +1,8 @@
 use utoipa::OpenApi;
 
-pub mod auth;
 pub mod health;
 pub mod metrics;
+pub mod sys_auth;
 pub mod sys_dept;
 pub mod sys_dict;
 pub mod sys_menu;
@@ -22,7 +22,7 @@ pub mod sys_user;
             (path = "/api/menu", api = sys_menu::MenuApiDoc),
             (path = "/api/dept", api = sys_dept::DeptApiDoc),
             (path = "/api/dict", api = sys_dict::DictApiDoc),
-            (path = "/api/auth", api = auth::AuthApiDoc,),
+            (path = "/api/auth", api = sys_auth::AuthApiDoc,),
         )
     )]
 pub struct ApiDoc;

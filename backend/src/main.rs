@@ -1,6 +1,6 @@
 use crate::{
 	config::Config, init::logger::init_log_with_config, middleware::rate_limiter,
-	services::auth_service::AuthService, state::AppState,
+	services::sys_auth_service::AuthService, state::AppState,
 };
 
 use clap::Parser;
