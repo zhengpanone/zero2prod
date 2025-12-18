@@ -16,7 +16,7 @@ use crate::{
 	services::sys_user_service::UserService,
 	state::AppState,
 	utils::{
-		encrypt::{hash_password, verify_password},
+		encrypt::verify_password,
 		jwt_utils::{generate_token, sign_access, sign_refresh, verify_token},
 	},
 };
@@ -44,14 +44,14 @@ impl AuthService {
 			.find_by_username(&login_request.username)
 			.await?
 			.ok_or_else(|| {
-				AppError::BadRequest("Invalid username or password".to_string())
+				AppError::BadRequest("Can't find user with name".to_string())
 			})?;
 		// TODO 校验邮箱
+		let password_hash = user.password_hash.as_deref().ok_or_else(|| {
+			AppError::BadRequest("User password hash is missing".to_string())
+		})?;
 
-		let is_valid = verify_password(
-			&login_request.password,
-			user.password_hash.as_deref().unwrap_or(""),
-		)?;
+		let is_valid = verify_password(&login_request.password, password_hash)?;
 		if !is_valid {
 			return Err(AppError::BadRequest(
 				"Invalid username or password".to_string(),
@@ -102,7 +102,7 @@ impl AuthService {
 			.create_user(CreateUserRequest {
 				username: register.username.to_string(),
 				email: register.email.to_string(),
-				password: hash_password(&register.password).unwrap(),
+				password: register.password,
 			})
 			.await?;
 		let token = generate_token(&user, &self.state.config.jwt.secret).unwrap();

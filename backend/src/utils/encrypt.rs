@@ -38,7 +38,7 @@ mod tests {
 
 	#[test]
 	fn test_password_hashing() {
-		let password = "test_password_123";
+		let password = "admin123";
 		// 测试密码哈希
 		let hash = hash_password(password).unwrap();
 
