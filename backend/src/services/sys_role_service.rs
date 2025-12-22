@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::middleware::auth::AuthUser;
+use crate::schemas::sys_role_schemas::ListRolesRequest;
 use crate::{
 	errors::{AppError, Result},
 	models::sys_role::SysRole,
@@ -23,8 +24,8 @@ impl SysRoleService {
 		Self { repository, state }
 	}
 
-	pub async fn list_roles(&self) -> Result<Vec<SysRole>> {
-		todo!()
+	pub async fn list_roles(&self, req: ListRolesRequest) -> Result<Vec<SysRole>> {
+		self.repository.list_roles(req).await
 	}
 
 	pub async fn get_role_detail(&self, id: String) -> Result<SysRole> {

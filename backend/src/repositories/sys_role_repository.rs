@@ -1,6 +1,8 @@
 use crate::{
-	enums::common::RoleStatus, errors::Result, models::sys_role::SysRole,
-	schemas::sys_role_schemas::CreateRoleRequest,
+	enums::common::RoleStatus,
+	errors::Result,
+	models::sys_role::SysRole,
+	schemas::sys_role_schemas::{CreateRoleRequest, ListRolesRequest},
 };
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -157,5 +159,21 @@ impl SysRoleRepository {
 			.collect();
 
 		Ok((users, total))
+	}
+
+	pub async fn list_roles(&self, req: ListRolesRequest) -> Result<Vec<SysRole>> {
+		let query = r#"
+			SELECT
+				id, name, code, description, status, order_num, remark,
+				is_default, is_protected, created_at, created_by, updated_at, updated_by,
+				is_deleted
+			FROM sys_role
+			WHERE 1 = 1
+			"#;
+
+		let roles = sqlx::query_as::<_, SysRole>(query)
+			.fetch_all(&self.pool)
+			.await?;
+		Ok(roles)
 	}
 }

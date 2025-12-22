@@ -145,3 +145,14 @@ impl From<SysRole> for RoleResponse {
 		}
 	}
 }
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[schema(title = "ListRolesRequest", description = "角色列表请求体")]
+pub struct ListRolesRequest {
+	#[schema(example = "管理员")]
+	pub role_name: Option<String>,
+	#[schema(example = "admin")]
+	pub role_code: Option<String>,
+	#[schema(example = "0")]
+	pub status: Option<String>,
+}

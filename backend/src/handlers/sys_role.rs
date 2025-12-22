@@ -8,6 +8,7 @@ use std::sync::Arc;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
+use crate::schemas::sys_role_schemas::ListRolesRequest;
 use crate::{
 	errors::{ApiError, Result},
 	middleware::auth::AuthUser,
@@ -99,8 +100,22 @@ responses(
     (status = 200, description = "角色列表", body = ApiResponse<Vec<RoleResponse>>),
     (status = 500, description = "服务器错误", body = ApiError)
 ))]
-pub async fn list_role(State(state): State<Arc<AppState>>) {
-	todo!()
+pub async fn list_role(
+	State(state): State<Arc<AppState>>,
+	Extension(auth_user): Extension<Arc<AuthUser>>,
+	Json(req): Json<ListRolesRequest>,
+) -> Result<(StatusCode, Json<ApiResponse<Vec<RoleResponse>>>)> {
+	let role_service = SysRoleService::new(state.clone());
+	let role_list = role_service.list_roles(req).await?;
+
+	let role_response_list = role_list
+		.into_iter()
+		.map(RoleResponse::from)
+		.collect::<Vec<RoleResponse>>();
+	Ok(ApiResponse::ok_with_code_data(
+		StatusCode::OK,
+		role_response_list,
+	))
 }
 
 #[derive(OpenApi)]
