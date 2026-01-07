@@ -124,3 +124,164 @@ async fn shutdown_signal() {
 
 	info!("🚦 Shutdown signal received, starting graceful shutdown...");
 }
+
+#[cfg(test)]
+mod tests {
+
+	use axum::{
+		body::Body,
+		extract::connect_info::MockConnectInfo,
+		http::{Request, StatusCode},
+	};
+	use tower::ServiceExt;
+
+	#[tokio::test]
+	// oneshot返回的OneShot对象只能调用一次，
+	async fn hello_oneshot_test() {
+		use std::sync::Arc;
+
+		use axum::body::to_bytes;
+		use axum::extract::Request;
+		use axum::{body::Body, http::StatusCode};
+		use dotenvy::dotenv;
+		use tower::ServiceExt;
+		use tracing::info;
+
+		use crate::{
+			config::Config, init::logger::init_log_with_config,
+			middleware::rate_limiter, routers, state::AppState,
+		};
+
+		// 加载环境变量
+		dotenv().ok();
+		// 加载配置
+		let config = Config::from_env().expect("Failed to load config");
+
+		let _ = init_log_with_config(config.clone().logger);
+		info!("Starting server...");
+
+		// 创建限流器
+		let rate_limiter = rate_limiter::create_rate_limiter(100);
+
+		// 创建应用状态
+		let state = Arc::new(AppState::new(config.clone()).await.unwrap());
+		let app = routers::create_router(state.clone(), rate_limiter);
+
+		let response = app
+			.oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+			.await
+			.unwrap();
+		// 检查状态码是否为 200
+		assert_eq!(response.status(), StatusCode::OK);
+
+		// usize::MAX 表示无限制
+		let body_bytes = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+		let body = String::from_utf8(body_bytes.to_vec()).unwrap();
+		assert_eq!(body, "Hello Axum!");
+		assert_eq!(&body_bytes[..], b"Hello Axum!");
+	}
+
+	// into_service()和 .ready().call()
+	// 更底层的 Tower Service trait 模式
+	// 需要显式处理可变性
+	// 可以多次复用同一个 Service
+	// 更灵活，但代码更冗长
+	#[tokio::test]
+	async fn hello_request_test() {
+		use std::sync::Arc;
+
+		use axum::body::Body;
+		use axum::extract::Request;
+		use dotenvy::dotenv;
+		use tower::ServiceExt;
+		use tracing::info;
+
+		use crate::{
+			config::Config, init::logger::init_log_with_config,
+			middleware::rate_limiter, routers, state::AppState,
+		};
+		use tower::Service;
+
+		// 加载环境变量
+		dotenv().ok();
+		// 加载配置
+		let config = Config::from_env().expect("Failed to load config");
+
+		let _ = init_log_with_config(config.clone().logger);
+		info!("Starting server...");
+
+		// 创建限流器
+		let rate_limiter = rate_limiter::create_rate_limiter(100);
+
+		// 创建应用状态
+		let state = Arc::new(AppState::new(config.clone()).await.unwrap());
+		let app = routers::create_router(state.clone(), rate_limiter);
+		// 将 Router 转换为 Service
+		let mut service = app.into_service();
+
+		let request: Request<Body> =
+			Request::builder().uri("/").body(Body::empty()).unwrap();
+
+		let response = service.ready().await.unwrap().call(request).await.unwrap();
+
+		assert_eq!(response.status(), StatusCode::OK);
+
+		// 创建请求构建器
+		let request_builder = Request::builder().uri("/");
+		// 测试多个请求
+		for _ in 0..3 {
+			// 使用构建器创建新请求
+			let request = create_request();
+			let response =
+				service.ready().await.unwrap().call(request).await.unwrap();
+			assert_eq!(response.status(), 200);
+		}
+	}
+
+	fn create_request() -> Request<Body> {
+		Request::builder().uri("/").body(Body::empty()).unwrap()
+	}
+
+	#[tokio::test]
+	async fn with_into_make_service_with_connect_info() {
+		use axum::body::Body;
+		use axum::extract::Request;
+		use dotenvy::dotenv;
+		use std::net::SocketAddr;
+		use std::sync::Arc;
+		use tower::Service;
+		use tracing::info;
+
+		use crate::{
+			config::Config, init::logger::init_log_with_config,
+			middleware::rate_limiter, routers, state::AppState,
+		};
+
+		// 加载环境变量
+		dotenv().ok();
+		// 加载配置
+		let config = Config::from_env().expect("Failed to load config");
+
+		let _ = init_log_with_config(config.clone().logger);
+		info!("Starting server...");
+
+		// 创建限流器
+		let rate_limiter = rate_limiter::create_rate_limiter(100);
+
+		// 创建应用状态
+		let state = Arc::new(AppState::new(config.clone()).await.unwrap());
+		let router = routers::create_router(state.clone(), rate_limiter);
+
+		// 添加 MockConnectInfo 层
+		let router =
+			router.layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 3000))));
+
+		// 将 Router 转换为 Service
+		let mut service = router.into_service();
+
+		let request = Request::builder().uri("/").body(Body::empty()).unwrap();
+
+		let response = service.ready().await.unwrap().call(request).await.unwrap();
+		assert_eq!(response.status(), StatusCode::OK);
+	}
+}

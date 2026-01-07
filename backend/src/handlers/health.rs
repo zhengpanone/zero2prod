@@ -35,5 +35,5 @@ pub async fn health_check(
 }
 
 pub async fn hello() -> &'static str {
-	"Hello from web template!"
+	"Hello Axum!"
 }
