@@ -149,3 +149,23 @@ token VARCHAR(36) NOT NULL,
 expires_at TIMESTAMPTZ NOT NULL,
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Create sys_dict_type table
+DROP TABLE IF EXISTS sys_dict_type;
+CREATE TABLE IF NOT EXISTS sys_dict_type (
+    id VARCHAR(36) PRIMARY KEY ,
+    dict_type VARCHAR(36) NOT NULL,
+    order_num int NOT NULL DEFAULT 1,
+    description VARCHAR(255),
+    system_flag boolean not null default false,
+    status VARCHAR(10) NOT NULL default '1',
+    remark VARCHAR(10),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_id VARCHAR(255) not null DEFAULT '1',
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_id VARCHAR(255) not null DEFAULT '1',
+    updated_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    is_deleted boolean not null default false,
+    deleted_at TIMESTAMP
+);

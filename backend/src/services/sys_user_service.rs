@@ -13,14 +13,15 @@ use crate::{
 };
 
 pub struct UserService {
-	repository: UserRepository,
 	state: Arc<AppState>,
+	repository: UserRepository,
+
 }
 
 impl UserService {
 	pub fn new(state: Arc<AppState>) -> Self {
 		let repository = UserRepository::new(state.db.clone());
-		Self { repository, state }
+		Self {  state,repository }
 	}
 
 	pub async fn list_users(&self) -> Result<Vec<SysUser>> {

@@ -7,7 +7,7 @@ use uuid::Uuid;
 // 字典类型
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct SysDictType {
-	pub id: Uuid,
+	pub id: String,
 	// 字典类型
 	pub dict_type: String,
 	pub order_num: i32,
